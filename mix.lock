@@ -1,0 +1,5 @@
+%{"msgpax": {:hex, :msgpax, "0.8.2", "0e83d86e7cbf1bdcf7b870c25951df042ec19f9804a1a9c2fa59091a43ee2886", [:mix], []},
+  "pbkdf2": {:git, "https://github.com/pma/erlang-pbkdf2.git", "93b290d72b107747c717fb1f55811d2ebc1b73ed", [branch: "master"]},
+  "poison": {:hex, :poison, "1.5.2", "560bdfb7449e3ddd23a096929fb9fc2122f709bcc758b2d5d5a5c7d0ea848910", [:mix], []},
+  "spell": {:git, "https://github.com/zatvobor/spell.git", "1692ba0c9da17ec725ae001f0004cfd678154682", [branch: "master"]},
+  "websocket_client": {:git, "https://github.com/jeremyong/websocket_client.git", "f465f229958293949e4a192bea65a7e47bb2f762", [tag: "v0.7"]}}
