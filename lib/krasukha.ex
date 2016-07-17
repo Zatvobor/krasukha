@@ -1,6 +1,9 @@
 defmodule Krasukha do
+  @moduledoc false
+
   use Application
 
+  @doc false
   def start(_type, _args) do
     import Supervisor.Spec, warn: false
 
