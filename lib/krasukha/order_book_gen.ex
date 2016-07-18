@@ -4,6 +4,7 @@ defmodule Krasukha.OrderBookGen do
   @moduledoc false
 
   use GenServer
+  alias Krasukha.OrderBookAgent
 
   @doc false
   def start_link(currency_pair) do
@@ -13,6 +14,8 @@ defmodule Krasukha.OrderBookGen do
 
   @doc false
   def init([currency_pair]) do
+    {:ok, order_book} = OrderBookAgent.start_link()
+
     {:ok, subscriber} = Spell.connect("wss://api.poloniex.com", realm: "realm1")
     {:ok, subscription} = Spell.call_subscribe(subscriber, to_string(currency_pair))
 
@@ -21,13 +24,14 @@ defmodule Krasukha.OrderBookGen do
       {:error, reason} -> {:error, reason}
     end
 
-    {:ok, [subscriber, subscription]}
+    {:ok, [subscriber, subscription, order_book]}
   end
 
   @doc false
-  def terminate(reason, [subscriber, subscription]) do
-    Spell.call_unsubscribe(subscriber, subscription)
-    Spell.close(subscriber)
+  def terminate(_reason, [subscriber, subscription, order_book]) do
+    :ok = Spell.call_unsubscribe(subscriber, subscription)
+    :ok = Spell.close(subscriber)
+    :ok = OrderBookAgent.stop(order_book)
 
     :ok
   end
