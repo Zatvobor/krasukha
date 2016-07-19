@@ -4,7 +4,7 @@ defmodule Krasukha do
   use Application
 
   @doc false
-  def start(_type \\ :null, _args \\ :null) do
+  def start(_type \\ nil, _args \\ nil) do
     import Supervisor.Spec, warn: false
 
     children = []

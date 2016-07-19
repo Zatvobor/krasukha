@@ -14,7 +14,8 @@ defmodule Krasukha.OrderBookGen do
 
   @doc false
   def init([currency_pair]) do
-    {:ok, order_book} = OrderBookAgent.start_link()
+    storage = OrderBookAgent.new_storage() # used here for keeping writing ownership
+    {:ok, order_book} = OrderBookAgent.start_link(storage)
 
     {:ok, subscriber} = Spell.connect("wss://api.poloniex.com", realm: "realm1")
     {:ok, subscription} = Spell.call_subscribe(subscriber, to_string(currency_pair))
