@@ -10,8 +10,8 @@ defmodule Krasukha.OrderBookAgent do
 
   @doc false
   def new_storage do
-    Enum.map(1..2, fn (_e) ->
-      :ets.new(:order_book, [:ordered_set, :protected, {:read_concurrency, true}])
+    Enum.map([:asks, :bids], fn (type) ->
+      :ets.new(type, [:ordered_set, :protected, {:read_concurrency, true}])
     end)
   end
 

@@ -1,6 +1,12 @@
 defmodule Krasukha.HTTP do
   @moduledoc false
 
+  alias Krasukha.HTTP.PublicAPI
+
+  @doc false
+  defdelegate returnOrderBook(params), to: PublicAPI
+
+
   @uri URI.parse("https://poloniex.com")
   @doc false
   def uri, do: @uri
