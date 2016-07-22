@@ -19,28 +19,45 @@ defmodule Krasukha.OrderBookGen do
     storage = OrderBookAgent.new_storage() # used here for keeping writing ownership
     {:ok, order_book} = OrderBookAgent.start_link(storage)
 
-    # initialize order book initial data
-    :ok = fetchOrderBook(currency_pair, order_book)
-
     # turn on listening of order book updates
-    {:ok, subscriber, subscription} = listenOrderBookUpdates(currency_pair)
+    # {:ok, subscriber, subscription} = listenOrderBookUpdates(currency_pair)
 
     # {:ok, [subscriber, subscription, order_book]}
-    {:ok, %{currency_pair: currency_pair, order_book: order_book, subscriber: subscriber, subscription: subscription}}
+    {:ok, %{currency_pair: currency_pair, order_book: order_book}}
   end
 
   @doc false
-  def terminate(_reason, %{order_book: order_book, subscriber: subscriber, subscription: subscription} = _state) do
-    :ok = Spell.call_unsubscribe(subscriber, subscription)
-    :ok = Spell.close(subscriber)
+  def terminate(_reason, %{order_book: order_book} = _state) do
+  # def terminate(_reason, %{order_book: order_book, subscriber: subscriber, subscription: subscription} = _state) do
+    # :ok = Spell.call_unsubscribe(subscriber, subscription)
+    # :ok = Spell.close(subscriber)
     :ok = OrderBookAgent.stop(order_book)
 
     :ok
   end
 
+  # Server (callbacks)
+
   @doc false
-  def fetchOrderBook(currency_pair, agent) when is_binary(currency_pair) and is_pid(agent) do
-    {:ok, 200, %{asks: asks, bids: bids, isFrozen: "0"}} = HTTP.returnOrderBook([currencyPair: currency_pair, depth: 1])
+  def handle_call(:clean_order_book, _from, %{order_book: agent} = state) do
+    {:reply, OrderBookAgent.delete_all_objects(agent), state}
+  end
+
+  @doc false
+  def handle_call(:fetch_order_book, _from, %{currency_pair: currency_pair, order_book: agent} = state) do
+    {:reply, fetchOrderBook([currencyPair: currency_pair, depth: 1], agent), state}
+  end
+
+  @doc false
+  def handle_call({:fetch_order_book, [depth: depth]} = _msg, _from, %{currency_pair: currency_pair, order_book: agent} = state) do
+    {:reply, fetchOrderBook([currencyPair: currency_pair, depth: depth], agent), state}
+  end
+
+  # Client API
+
+  @doc false
+  def fetchOrderBook(params, agent) when is_list(params) and is_pid(agent) do
+    {:ok, 200, %{asks: asks, bids: bids, isFrozen: "0"}} = HTTP.returnOrderBook(params)
     [asks_book_tid, bids_book_tid] = OrderBookAgent.book_tids(agent)
     flow = [{asks, asks_book_tid, :ask}, {bids, bids_book_tid, :bid}]
     Enum.each(flow, fn({records, tid, type}) ->

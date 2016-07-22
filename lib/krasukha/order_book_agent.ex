@@ -19,6 +19,9 @@ defmodule Krasukha.OrderBookAgent do
   defdelegate stop(agent), to: Agent
 
   @doc false
+  def delete_all_objects(agent), do: Enum.each(book_tids(agent), fn(tid) -> :true = :ets.delete_all_objects(tid) end)
+
+  @doc false
   def book_tids(agent), do: Agent.get(agent, fn(book_tids) -> book_tids end)
 
   @doc false
