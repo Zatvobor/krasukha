@@ -5,3 +5,7 @@ elixir:
 
 notifications:
   email: false
+  slack:
+    rooms:
+      - zatvobor:eLjCTZD2l85xl19hsSdxkMdN##oss-feed
+    on_success: change
