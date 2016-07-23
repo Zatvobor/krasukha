@@ -1,5 +1,5 @@
 defmodule Krasukha.HTTPTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   import Krasukha.HTTP
 
