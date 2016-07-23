@@ -44,24 +44,30 @@ defmodule Krasukha.OrderBookGen do
   end
 
   @doc false
+  def handle_call(:order_book, _from, %{order_book: agent} = state) do
+    {:reply, agent, state}
+  end
+
+  @doc false
   def handle_call(:fetch_order_book, _from, %{currency_pair: currency_pair, order_book: agent} = state) do
-    {:reply, fetchOrderBook([currencyPair: currency_pair, depth: 1], agent), state}
+    {:reply, fetch_order_book([currencyPair: currency_pair, depth: 1], agent), state}
   end
 
   @doc false
   def handle_call({:fetch_order_book, [depth: depth]} = _msg, _from, %{currency_pair: currency_pair, order_book: agent} = state) do
-    {:reply, fetchOrderBook([currencyPair: currency_pair, depth: depth], agent), state}
+    {:reply, fetch_order_book([currencyPair: currency_pair, depth: depth], agent), state}
   end
 
   # Client API
 
   @doc false
-  def fetchOrderBook(params, agent) when is_list(params) and is_pid(agent) do
-    {:ok, 200, %{asks: asks, bids: bids, isFrozen: "0"}} = HTTP.returnOrderBook(params)
+  def fetch_order_book(params, agent) when is_list(params) and is_pid(agent) do
+    {:ok, 200, %{asks: asks, bids: bids, isFrozen: "0"}} = HTTP.return_order_book(params)
     [asks_book_tid, bids_book_tid] = OrderBookAgent.book_tids(agent)
     flow = [{asks, asks_book_tid, :ask}, {bids, bids_book_tid, :bid}]
     Enum.each(flow, fn({records, tid, type}) ->
-        Enum.each(records, fn([price, amount]) -> :ets.insert(tid, {price, amount, type}) end)
+        objects = Enum.map(records, fn([price, amount]) -> {price, amount, type} end)
+        :true = :ets.insert(tid, objects)
     end)
 
     :ok
