@@ -15,21 +15,17 @@ defmodule Krasukha.OrderBookAgentTest do
 
   test "asks_book_tid/1", %{agent: pid} do
     tid = asks_book_tid(pid)
-    assert :ordered_set = :ets.info(tid, :type)
-    assert :asks = :ets.info(tid, :name)
+    assert :ordered_set == :ets.info(tid, :type)
+    assert :asks == :ets.info(tid, :name)
   end
 
   test "bids_book_tid/1", %{agent: pid} do
     tid = bids_book_tid(pid)
-    assert :ordered_set = :ets.info(tid, :type)
-    assert :bids = :ets.info(tid, :name)
+    assert :ordered_set == :ets.info(tid, :type)
+    assert :bids == :ets.info(tid, :name)
   end
 
   test "stop/1", %{agent: pid} do
-    book_tids = book_tids(pid)
-    assert :ok = stop(pid)
-    Enum.map(book_tids, fn (tid) ->
-      assert :undefined = :ets.info(tid, :type)
-    end)
+    assert :ok == stop(pid)
   end
 end

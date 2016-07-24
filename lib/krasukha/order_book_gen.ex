@@ -16,24 +16,21 @@ defmodule Krasukha.OrderBookGen do
 
   @doc false
   def init([currency_pair]) do
-    storage = OrderBookAgent.new_storage() # used here for keeping writing ownership
-    {:ok, order_book} = OrderBookAgent.start_link(storage)
+    {:ok, order_book} = OrderBookAgent.start_link()
+    %{subscriber: subscriber} = WAMP.connection()
 
     # turn on listening of order book updates
-    # {:ok, subscriber, subscription} = listenOrderBookUpdates(currency_pair)
+    # case Spell.receive_event(subscriber, subscription) do
+    #   {:ok, event}     -> Logger.info(inspect(event))
+    #   {:error, reason} -> {:error, reason}
+    # end
 
-    # {:ok, [subscriber, subscription, order_book]}
-    {:ok, %{currency_pair: currency_pair, order_book: order_book}}
+    {:ok, %{currency_pair: currency_pair, order_book: order_book, subscriber: subscriber}}
   end
 
   @doc false
   def terminate(_reason, %{order_book: order_book} = _state) do
-  # def terminate(_reason, %{order_book: order_book, subscriber: subscriber, subscription: subscription} = _state) do
-    # :ok = Spell.call_unsubscribe(subscriber, subscription)
-    # :ok = Spell.close(subscriber)
     :ok = OrderBookAgent.stop(order_book)
-
-    :ok
   end
 
   # Server (callbacks)
@@ -58,31 +55,33 @@ defmodule Krasukha.OrderBookGen do
     {:reply, fetch_order_book([currencyPair: currency_pair, depth: depth], agent), state}
   end
 
-  # Client API
-
   @doc false
-  def fetch_order_book(params, agent) when is_list(params) and is_pid(agent) do
-    {:ok, 200, %{asks: asks, bids: bids, isFrozen: "0"}} = HTTP.return_order_book(params)
-    [asks_book_tid, bids_book_tid] = OrderBookAgent.book_tids(agent)
-    flow = [{asks, asks_book_tid, :ask}, {bids, bids_book_tid, :bid}]
-    Enum.each(flow, fn({records, tid, type}) ->
-        objects = Enum.map(records, fn([price, amount]) -> {price, amount, type} end)
-        :true = :ets.insert(tid, objects)
-    end)
-
-    :ok
+  def handle_call(:unsubscribe, _from, %{subscriber: subscriber, subscription: subscription} = state) do
+    {:reply, Spell.call_unsubscribe(subscriber, subscription), state}
   end
 
   @doc false
-  def listenOrderBookUpdates(currency_pair) when is_binary(currency_pair) do
-    {:ok, subscriber} = Spell.connect(WAMP.url, realm: "realm1")
+  def handle_call(:subscribe, _from, %{currency_pair: currency_pair, subscriber: subscriber} = state) do
     {:ok, subscription} = Spell.call_subscribe(subscriber, currency_pair)
+    {:reply, :ok, Map.put(state, :subscription, subscription)}
+  end
 
-    # case Spell.receive_event(subscriber, subscription) do
-    #   {:ok, event}     -> Logger.info(inspect(event))
-    #   {:error, reason} -> {:error, reason}
-    # end
+  # Client API
 
-    {:ok, subscriber, subscription}
+  @doc false
+  defp fetch_order_book(params, agent) do
+    {:ok, 200, %{asks: asks, bids: bids, isFrozen: "0"}} = HTTP.return_order_book(params)
+    fetch_order_book(asks, bids, agent)
+  end
+
+  @doc false
+  def fetch_order_book(asks, bids, agent) do
+    [asks_book_tid, bids_book_tid] = OrderBookAgent.book_tids(agent)
+    flow = [{asks, asks_book_tid, :ask}, {bids, bids_book_tid, :bid}]
+    Enum.each(flow, fn({records, tid, type}) ->
+      objects = Enum.map(records, fn([rate, amount]) -> {rate, amount, type} end)
+      :true = :ets.insert(tid, objects)
+    end)
+    :ok
   end
 end

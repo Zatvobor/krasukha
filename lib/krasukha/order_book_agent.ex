@@ -2,10 +2,8 @@ defmodule Krasukha.OrderBookAgent do
   @moduledoc false
 
   @doc false
-  def start_link(book_tids \\ nil) do
-    Agent.start_link(fn ->
-      if book_tids == nil, do: new_storage(), else: book_tids
-    end)
+  def start_link(book_tids \\ new_storage()) do
+    Agent.start_link(fn -> book_tids end)
   end
 
   @doc false
