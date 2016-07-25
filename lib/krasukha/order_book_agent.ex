@@ -36,15 +36,11 @@ defmodule Krasukha.OrderBookAgent do
 
   @doc false
   def book_tid(agent, :asks), do: asks_book_tid(agent)
-  @doc false
   def book_tid(agent, "ask"), do: asks_book_tid(agent)
-  @doc false
   def book_tid(agent, "buy"), do: asks_book_tid(agent)
 
   @doc false
   def book_tid(agent, :bids), do: bids_book_tid(agent)
-  @doc false
   def book_tid(agent, "bid"), do: bids_book_tid(agent)
-  @doc false
   def book_tid(agent, "sell"), do: bids_book_tid(agent)
 end

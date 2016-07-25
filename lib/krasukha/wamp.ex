@@ -24,8 +24,10 @@ defmodule Krasukha.WAMP do
   defdelegate disconect(wamp_pid), to: Spell, as: :close
 
   @doc false
-  def connect!(options \\ credentials()) do
-    {:ok, subscriber} = connect(options)
+  def connect!(url \\ url(), options \\ credentials()) do
+    :ok = Application.put_env(:spell, :timeout, options[:timeout], [persistent: true])
+
+    {:ok, subscriber} = connect(url, options)
     environment = %{subscriber: subscriber, options: options}
     :ok = Application.put_env(:krasukha, :wamp, environment, [persistent: true])
 
@@ -42,4 +44,7 @@ defmodule Krasukha.WAMP do
 
   @doc false
   defdelegate unsubscribe(subscriber, subscription), to: Spell, as: :call_unsubscribe
+
+  @doc false
+  defdelegate receive_event(subscriber, subscription), to: Spell
 end
