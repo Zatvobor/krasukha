@@ -1,5 +1,3 @@
-require Logger
-
 defmodule Krasukha.OrderBookGen do
   @moduledoc false
 
@@ -57,12 +55,12 @@ defmodule Krasukha.OrderBookGen do
 
   @doc false
   def handle_call(:unsubscribe, _from, %{subscriber: subscriber, subscription: subscription} = state) do
-    {:reply, Spell.call_unsubscribe(subscriber, subscription), state}
+    {:reply, WAMP.unsubscribe(subscriber, subscription), state}
   end
 
   @doc false
   def handle_call(:subscribe, _from, %{currency_pair: currency_pair, subscriber: subscriber} = state) do
-    {:ok, subscription} = Spell.call_subscribe(subscriber, currency_pair)
+    {:ok, subscription} = WAMP.subscribe(subscriber, currency_pair)
     {:reply, :ok, Map.put(state, :subscription, subscription)}
   end
 
