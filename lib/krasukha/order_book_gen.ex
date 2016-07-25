@@ -45,12 +45,12 @@ defmodule Krasukha.OrderBookGen do
 
   @doc false
   def handle_call(:fetch_order_book, _from, %{currency_pair: currency_pair, order_book: agent} = state) do
-    {:reply, fetch_order_book([currencyPair: currency_pair, depth: 1], agent), state}
+    {:reply, fetch_order_book(agent, [currencyPair: currency_pair, depth: 1]), state}
   end
 
   @doc false
   def handle_call({:fetch_order_book, [depth: depth]} = _msg, _from, %{currency_pair: currency_pair, order_book: agent} = state) do
-    {:reply, fetch_order_book([currencyPair: currency_pair, depth: depth], agent), state}
+    {:reply, fetch_order_book(agent, [currencyPair: currency_pair, depth: depth]), state}
   end
 
   @doc false
@@ -67,19 +67,56 @@ defmodule Krasukha.OrderBookGen do
   # Client API
 
   @doc false
-  defp fetch_order_book(params, agent) do
+  defp fetch_order_book(agent, params) do
     {:ok, 200, %{asks: asks, bids: bids, isFrozen: "0"}} = HTTP.return_order_book(params)
-    fetch_order_book(asks, bids, agent)
+    fetch_order_book(agent, asks, bids)
   end
 
+
+  import Krasukha.HTTP.PublicAPI, only: [to_tuple_with_floats: 1, to_float: 1]
+
   @doc false
-  def fetch_order_book(asks, bids, agent) do
+  def fetch_order_book(agent, asks, bids) do
     [asks_book_tid, bids_book_tid] = OrderBookAgent.book_tids(agent)
-    flow = [{asks, asks_book_tid, :ask}, {bids, bids_book_tid, :bid}]
-    Enum.each(flow, fn({records, tid, type}) ->
-      objects = Enum.map(records, fn([rate, amount]) -> {rate, amount, type} end)
+    flow = [{asks, asks_book_tid}, {bids, bids_book_tid}]
+    Enum.each(flow, fn({records, tid}) ->
+      objects = Enum.map(records, fn(record) ->
+        object = to_tuple_with_floats(record)
+        object
+      end)
       :true = :ets.insert(tid, objects)
     end)
     :ok
+  end
+
+  @doc false
+  def update_order_book(agent, [_, _, _, data, _seq]) when is_list(data) do
+    Enum.each(data, fn(action) -> update_order_book(agent, action) end)
+    :ok
+  end
+
+  @doc false
+  def update_order_book(agent, %{"data" => data, "type" => "orderBookModify"}) do
+    tid = OrderBookAgent.book_tid(agent, data["type"])
+    object = to_tuple_with_floats(data)
+    :true = :ets.insert(tid, object)
+  end
+
+  @doc false
+  def update_order_book(agent, %{"data" => data, "type" => "orderBookRemove"}) do
+    tid = OrderBookAgent.book_tid(agent, data["type"])
+    key = to_float(data["rate"])
+    :true = :ets.delete(tid, key)
+  end
+
+  @doc false
+  def update_order_book(agent, %{"data" => data, "type" => "newTrade"}) do
+    tid = OrderBookAgent.book_tid(agent, data["type"])
+    case :ets.lookup(tid, to_float(data["rate"])) do
+      [{rate, amount}] ->
+        object = {rate, (amount - to_float(data["amount"]))}
+        :true = :ets.insert(tid, object)
+      [] -> :ok #do nothing
+    end
   end
 end

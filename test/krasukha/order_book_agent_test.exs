@@ -19,8 +19,32 @@ defmodule Krasukha.OrderBookAgentTest do
     assert :asks == :ets.info(tid, :name)
   end
 
+  test "book_tid(agent, 'ask')", %{agent: pid} do
+    tid = book_tid(pid, "ask")
+    assert :ordered_set == :ets.info(tid, :type)
+    assert :asks == :ets.info(tid, :name)
+  end
+
+  test "book_tid(agent, 'buy')", %{agent: pid} do
+    tid = book_tid(pid, "buy")
+    assert :ordered_set == :ets.info(tid, :type)
+    assert :asks == :ets.info(tid, :name)
+  end
+
   test "bids_book_tid/1", %{agent: pid} do
     tid = bids_book_tid(pid)
+    assert :ordered_set == :ets.info(tid, :type)
+    assert :bids == :ets.info(tid, :name)
+  end
+
+  test "book_tid(agent, 'bid')", %{agent: pid} do
+    tid = book_tid(pid, "bid")
+    assert :ordered_set == :ets.info(tid, :type)
+    assert :bids == :ets.info(tid, :name)
+  end
+
+  test "book_tid(agent, 'sell')", %{agent: pid} do
+    tid = book_tid(pid, "sell")
     assert :ordered_set == :ets.info(tid, :type)
     assert :bids == :ets.info(tid, :name)
   end

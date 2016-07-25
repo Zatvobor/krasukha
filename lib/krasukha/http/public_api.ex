@@ -9,14 +9,18 @@ defmodule Krasukha.HTTP.PublicAPI do
   @doc false
   def return_order_book(params \\ [currencyPair: "BTC_NXT", depth: 1]) do
     url = HTTP.url("returnOrderBook", params, uri)
-    response = HTTP.get(url)
-    normalize_return_order_book(response)
+    HTTP.get(url)
   end
 
   @doc false
-  def normalize_return_order_book({:ok, 200, body}), do: {:ok, 200, normalize_return_order_book(body)}
-  def normalize_return_order_book(%{asks: asks, bids: bids} = body), do: Map.merge(body, %{asks: normalize_return_order_book(asks), bids: normalize_return_order_book(bids)})
-  def normalize_return_order_book([price, amount]) when is_binary(price), do: [String.to_float(price), amount]
-  def normalize_return_order_book(slot) when is_list(slot), do: Enum.map(slot, &(normalize_return_order_book(&1)))
-  def normalize_return_order_book(:error), do: :error
+  def to_tuple_with_floats([rate, amount]), do: {to_float(rate), to_float(amount)}
+  def to_tuple_with_floats(%{"rate" => rate, "amount" => amount}), do: {to_float(rate), to_float(amount)}
+
+  @doc false
+  def to_float(value) when is_binary(value) do
+    String.to_float(value)
+  rescue
+    ArgumentError -> String.to_integer(value)
+  end
+  def to_float(value), do: value
 end
