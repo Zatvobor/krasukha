@@ -17,12 +17,6 @@ defmodule Krasukha.OrderBookGen do
     {:ok, order_book} = OrderBookAgent.start_link()
     %{subscriber: subscriber} = WAMP.connection()
 
-    # turn on listening of order book updates
-    # case Spell.receive_event(subscriber, subscription) do
-    #   {:ok, event}     -> Logger.info(inspect(event))
-    #   {:error, reason} -> {:error, reason}
-    # end
-
     {:ok, %{currency_pair: currency_pair, order_book: order_book, subscriber: subscriber}}
   end
 
@@ -45,23 +39,32 @@ defmodule Krasukha.OrderBookGen do
 
   @doc false
   def handle_call(:fetch_order_book, _from, %{currency_pair: currency_pair, order_book: agent} = state) do
-    {:reply, fetch_order_book(agent, [currencyPair: currency_pair, depth: 1]), state}
+    fetched = fetch_order_book(agent, [currencyPair: currency_pair, depth: 1])
+    {:reply, fetched, state}
   end
 
   @doc false
   def handle_call({:fetch_order_book, [depth: depth]} = _msg, _from, %{currency_pair: currency_pair, order_book: agent} = state) do
-    {:reply, fetch_order_book(agent, [currencyPair: currency_pair, depth: depth]), state}
+    fetched = fetch_order_book(agent, [currencyPair: currency_pair, depth: depth])
+    {:reply, fetched, state}
   end
 
   @doc false
   def handle_call(:unsubscribe, _from, %{subscriber: subscriber, subscription: subscription} = state) do
-    {:reply, WAMP.unsubscribe(subscriber, subscription), state}
+    unsubscribed = WAMP.unsubscribe(subscriber, subscription)
+    {:reply, unsubscribed, Map.delete(state, :subscription)}
   end
 
   @doc false
   def handle_call(:subscribe, _from, %{currency_pair: currency_pair, subscriber: subscriber} = state) do
     {:ok, subscription} = WAMP.subscribe(subscriber, currency_pair)
-    {:reply, :ok, Map.put(state, :subscription, subscription)}
+    {:reply, subscription,  Map.put(state, :subscription, subscription)}
+  end
+
+  @doc false
+  def handle_info({_module, _from, %{args: args}} = _message, %{order_book: agent} = state) do
+    :ok = update_order_book(agent, args)
+    {:noreply, state}
   end
 
   # Client API
