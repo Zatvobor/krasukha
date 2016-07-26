@@ -2,25 +2,33 @@ defmodule Krasukha.OrderBookAgent do
   @moduledoc false
 
   @doc false
-  def start_link(book_tids \\ new_storage()) do
+  def start_link(prefix \\ "untitled") when is_binary(prefix) do
+    book_tids = new_storage(prefix)
     Agent.start_link(fn -> book_tids end)
   end
 
   @doc false
-  def new_storage do
-    Enum.map([:asks, :bids], fn (type) ->
-      :ets.new(type, [:ordered_set, :protected, {:read_concurrency, true}])
+  defp new_storage(prefix) do
+    Enum.map([{:asks, :ordered_set}, {:bids, :ordered_set}, {:history, :set}], fn ({name, type}) ->
+      :ets.new(table_name(prefix, name), [type, :protected, :named_table, {:read_concurrency, true}])
     end)
   end
+
+  import String, only: [to_atom: 1]
+
+  defp table_name(prefix, type), do: to_atom("#{String.downcase(prefix)}_#{type}")
 
   @doc false
   defdelegate stop(agent), to: Agent
 
   @doc false
-  def delete_all_objects(agent), do: Enum.each(book_tids(agent), fn(tid) -> :true = :ets.delete_all_objects(tid) end)
+  def delete_all_objects(agent), do: Enum.each(tids(agent), fn(tid) -> :true = :ets.delete_all_objects(tid) end)
 
   @doc false
-  def book_tids(agent), do: Agent.get(agent, fn(book_tids) -> book_tids end)
+  def book_tids(agent), do: Agent.get(agent, fn([asks, bids, _]) -> [asks, bids] end)
+
+  @doc false
+  def tids(agent), do: Agent.get(agent, fn(state) -> state end)
 
   @doc false
   def asks_book_tid(agent) do
@@ -43,4 +51,7 @@ defmodule Krasukha.OrderBookAgent do
   def book_tid(agent, :bids), do: bids_book_tid(agent)
   def book_tid(agent, "bid"), do: bids_book_tid(agent)
   def book_tid(agent, "sell"), do: bids_book_tid(agent)
+
+  @doc false
+  def history_tid(agent), do: Agent.get(agent, fn([_,_,history_tid]) -> history_tid end)
 end

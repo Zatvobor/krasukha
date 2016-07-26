@@ -3,18 +3,20 @@ defmodule Krasukha.OrderBookGen do
 
   use GenServer
 
+  import String, only: [to_atom: 1]
+
   alias Krasukha.{OrderBookAgent, HTTP, WAMP}
 
 
   @doc false
   def start_link(currency_pair) when is_binary(currency_pair) do
-    options = [name: String.to_atom(currency_pair)]
+    options = [name: to_atom(currency_pair)]
     GenServer.start_link(__MODULE__, [currency_pair], options)
   end
 
   @doc false
   def init([currency_pair]) do
-    {:ok, order_book} = OrderBookAgent.start_link()
+    {:ok, order_book} = OrderBookAgent.start_link(currency_pair)
     %{subscriber: subscriber} = WAMP.connection()
 
     {:ok, %{currency_pair: currency_pair, order_book: order_book, subscriber: subscriber}}
@@ -58,7 +60,7 @@ defmodule Krasukha.OrderBookGen do
   @doc false
   def handle_call(:subscribe, _from, %{currency_pair: currency_pair, subscriber: subscriber} = state) do
     {:ok, subscription} = WAMP.subscribe(subscriber, currency_pair)
-    {:reply, subscription,  Map.put(state, :subscription, subscription)}
+    {:reply, {:ok, subscription},  Map.put(state, :subscription, subscription)}
   end
 
   @doc false
@@ -114,6 +116,7 @@ defmodule Krasukha.OrderBookGen do
 
   @doc false
   def update_order_book(agent, %{"data" => data, "type" => "newTrade"}) do
+    # update order book
     tid = OrderBookAgent.book_tid(agent, data["type"])
     case :ets.lookup(tid, to_float(data["rate"])) do
       [{rate, amount}] ->
@@ -121,5 +124,9 @@ defmodule Krasukha.OrderBookGen do
         :true = :ets.insert(tid, object)
       [] -> :ok #do nothing
     end
+    # update trading history
+    tid = OrderBookAgent.history_tid(agent)
+    object = {data["date"], to_atom(data["type"]), to_float(data["rate"]), to_float(data["amount"]), to_float(data["total"]), data["tradeID"]}
+    :true = :ets.insert(tid, object)
   end
 end
