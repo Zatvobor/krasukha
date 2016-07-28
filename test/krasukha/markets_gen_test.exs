@@ -60,8 +60,9 @@ defmodule Krasukha.MarketsGenTest do
       ["BTC_BBR","0.00069501","0.00074346","0.00069501","-0.00742634","8.63286802","11983.47150109",0,"0.00107920","0.00045422"]
     ]
 
-    test "broadcast :ticker subscription", %{server: pid} do
-      assert send(pid, {__MODULE__, self(), @message})
+    test "broadcast :ticker subscription event", %{server: pid} do
+      send(pid, {__MODULE__, self(), %{args: @message}})
+      refute_receive :bye
     end
 
     test "update_ticker/2" do

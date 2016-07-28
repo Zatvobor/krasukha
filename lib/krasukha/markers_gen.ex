@@ -52,7 +52,7 @@ defmodule Krasukha.MarketsGen do
   end
 
   @doc false
-  def handle_info({_module, _from, %{args: args}} = _message, %{ticker: tid} = state) do
+  def handle_info({_module, _from, %{args: args}} = _message, %{ticker: tid} = state) when is_list(args) do
     :ok = update_ticker(tid, args)
     {:noreply, state}
   end
