@@ -5,6 +5,7 @@ defmodule Krasukha.HTTP do
 
   @doc false
   defdelegate return_order_book(params), to: PublicAPI
+  defdelegate return_ticker(), to: PublicAPI
 
 
   @uri URI.parse("https://poloniex.com")

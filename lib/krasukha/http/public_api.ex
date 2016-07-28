@@ -13,6 +13,12 @@ defmodule Krasukha.HTTP.PublicAPI do
   end
 
   @doc false
+  def return_ticker() do
+    url = HTTP.url("returnTicker", [], uri)
+    HTTP.get(url)
+  end
+
+  @doc false
   def to_tuple_with_floats([rate, amount]), do: {to_float(rate), to_float(amount)}
   def to_tuple_with_floats(%{"rate" => rate, "amount" => amount}), do: {to_float(rate), to_float(amount)}
 
