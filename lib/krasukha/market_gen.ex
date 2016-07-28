@@ -10,7 +10,7 @@ defmodule Krasukha.MarketGen do
 
   @doc false
   def start_link(currency_pair) when is_binary(currency_pair) do
-    options = [name: to_atom(currency_pair)]
+    options = [name: to_name(currency_pair, :market)]
     GenServer.start_link(__MODULE__, [currency_pair], options)
   end
 
@@ -27,8 +27,8 @@ defmodule Krasukha.MarketGen do
   @doc false
   def __create_books_table(currency_pair \\ "untitled") do
     opts = [:ordered_set, :protected, :named_table, {:read_concurrency, true}]
-    asks_book_tid = :ets.new(table_name(currency_pair, :asks), opts)
-    bids_book_tid = :ets.new(table_name(currency_pair, :bids), opts)
+    asks_book_tid = :ets.new(to_name(currency_pair, :asks), opts)
+    bids_book_tid = :ets.new(to_name(currency_pair, :bids), opts)
 
     %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}
   end
@@ -36,10 +36,10 @@ defmodule Krasukha.MarketGen do
   @doc false
   def __create_history_table(currency_pair \\ "untitled") do
     opts = [:set, :protected, :named_table, {:read_concurrency, true}]
-    :ets.new(table_name(currency_pair, :history), opts)
+    :ets.new(to_name(currency_pair, :history), opts)
   end
 
-  defp table_name(prefix, type), do: to_atom("#{String.downcase(prefix)}_#{type}")
+  defp to_name(prefix, type), do: to_atom("#{String.downcase(prefix)}_#{type}")
 
   # Server (callbacks)
 
