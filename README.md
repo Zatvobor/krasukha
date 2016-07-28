@@ -5,21 +5,35 @@
 ## `Krasukha.OrderBookGen` API
 
 ```iex
-
 {:ok, subscriber} = Krasukha.WAMP.connect!
 :ok = Krasukha.WAMP.disconnect!
 %{subscriber: subscriber} = Krasukha.WAMP.connection
 
-{:ok, btc_sc} = Krasukha.OrderBookGen.start_link("BTC_SC")
-GenServer.stop(btc_sc)
+{:ok, btc_sc} = Krasukha.MarketGen.start_link("BTC_SC")
+:ok = GenServer.stop(btc_sc)
 
-# Loads the order book for a given market.
-GenServer.call(btc_sc, {:fetch_order_book, [depth: 2]})
-# Cleans the order book. Gets ready for loading from scratch.
-GenServer.call(btc_sc, :clean_order_book)
+:ok = GenServer.call(btc_sc, {:fetch_order_book, [depth: 2]})
+:ok = GenServer.call(btc_sc, :clean_order_book)
 
 {:ok, subscription} = GenServer.call(btc_sc, :subscribe)
 :ok = GenServer.call(btc_sc, :unsubscribe)
+```
 
-GenServer.stop(btc_sc)
+```iex
+{:ok, btc_dash} = Krasukha.MarketGen.start_link("BTC_DASH")
+:ok = GenServer.stop(btc_dash)
+:ok = GenServer.call(btc_dash, {:fetch_order_book, [depth: 10]})
+{:ok, _} = GenServer.call(btc_dash, :subscribe)
+:ok = GenServer.call(btc_dash, :unsubscribe)
+```
+
+```iex
+{:ok, markets} = Krasukha.MarketsGen.start_link()
+:ok = GenServer.stop(markets)
+
+{:ok, _} = GenServer.call(markets, :subscribe_ticker)
+:ok = GenServer.call(markets, :unsubscribe_ticker)
+:ok = GenServer.call(markets, :clean_ticker)
+:ok = GenServer.call(markets, :fetch_ticker)
+:ok = GenServer.stop(markets)
 ```
