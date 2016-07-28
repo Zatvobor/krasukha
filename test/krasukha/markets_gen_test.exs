@@ -1,7 +1,7 @@
 defmodule Krasukha.MarketsGenTest do
   use ExUnit.Case, async: true
 
-  alias Krasukha.{MarketsGen}
+  alias Krasukha.{MarketsGen, WAMP}
 
   setup do
     {:ok, pid} = MarketsGen.start_link()
@@ -52,8 +52,11 @@ defmodule Krasukha.MarketsGenTest do
   describe "ticker is updating, using" do
     @tag :external
     test "subscribe_ticker/unsubscribe_ticker", %{server: pid} do
-      assert {:ok, _ticker_subscription} = MarketsGen.call(pid, :subscribe_ticker)
-      assert :ok = MarketsGen.call(pid, :unsubscribe_ticker)
+      assert {:ok, subscriber} = WAMP.connect()
+      assert :ok = GenServer.call(pid, {:subscriber, subscriber})
+      assert {:ok, _ticker_subscription} = GenServer.call(pid, :subscribe_ticker)
+      assert :ok = GenServer.call(pid, :unsubscribe_ticker)
+      assert :ok = WAMP.disconnect(subscriber)
     end
 
     @message [6956793409822983, 4840230496786428, %{},

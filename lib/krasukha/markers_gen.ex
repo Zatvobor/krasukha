@@ -22,6 +22,11 @@ defmodule Krasukha.MarketsGen do
   # Server (callbacks)
 
   @doc false
+  def handle_call({:subscriber, subscriber}, _from, state) do
+    {:reply, :ok, Map.put(state, :subscriber, subscriber)}
+  end
+
+  @doc false
   def handle_call(:ticker, _from, %{ticker: tid} = state) do
     {:reply, tid, state}
   end
