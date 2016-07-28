@@ -20,7 +20,7 @@ defmodule Krasukha.WAMPTest do
     @tag [external: true]
     test "connect/0 and disconnect/1" do
       {:ok, pid} = connect()
-      assert :ok == disconect(pid)
+      assert :ok == disconnect(pid)
     end
 
     @tag [external: true]

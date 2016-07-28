@@ -21,7 +21,7 @@ defmodule Krasukha.WAMP do
   defdelegate connect(url \\ url(), options \\ credentials()), to: Spell, as: :connect
 
   @doc false
-  defdelegate disconect(wamp_pid), to: Spell, as: :close
+  defdelegate disconnect(wamp_pid), to: Spell, as: :close
 
   @doc false
   def connect!(url \\ url(), options \\ credentials()) do
@@ -36,7 +36,7 @@ defmodule Krasukha.WAMP do
 
   @doc false
   def disconnect! do
-    disconect(connection().subscriber)
+    disconnect(connection().subscriber)
   end
 
   @doc false
