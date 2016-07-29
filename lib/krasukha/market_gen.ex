@@ -39,7 +39,8 @@ defmodule Krasukha.MarketGen do
     :ets.new(to_name(currency_pair, :history), opts)
   end
 
-  defp to_name(prefix, type), do: to_atom("#{String.downcase(prefix)}_#{type}")
+  @doc false
+  def to_name(prefix, type), do: to_atom("#{String.downcase(prefix)}_#{type}")
 
   # Server (callbacks)
 
@@ -113,6 +114,13 @@ defmodule Krasukha.MarketGen do
     :ok = update_order_book(state, args)
     {:noreply, state}
   end
+
+  @doc false
+  def terminate(_reason, state) do
+    if state[:subscription], do: GenServer.call(self, :unsubscribe)
+    :ok
+  end
+
 
   # Client API
 

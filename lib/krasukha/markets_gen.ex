@@ -62,6 +62,12 @@ defmodule Krasukha.MarketsGen do
     {:noreply, state}
   end
 
+  @doc false
+  def terminate(_reason, state) do
+    if state[:ticker_subscription], do: GenServer.call(self, :unsubscribe_ticker)
+    :ok
+  end
+
 
   # Client API
 
