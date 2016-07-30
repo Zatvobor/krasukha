@@ -3,6 +3,8 @@ defmodule Krasukha.MarketsGen do
 
   use GenServer
 
+  import String, only: [to_atom: 1]
+
   alias Krasukha.{HTTP, WAMP}
 
 
@@ -14,12 +16,33 @@ defmodule Krasukha.MarketsGen do
   @doc false
   def init(:ok) do
     %{subscriber: subscriber} = WAMP.connection()
-    ticker = :ets.new(:ticker, [:set, :protected, {:read_concurrency, true}])
 
-    {:ok, %{subscriber: subscriber, ticker: ticker}}
+    state = %{}
+      |> Map.merge(%{subscriber: subscriber})
+      |> Map.merge(__create_ticker_table())
+      |> Map.merge(__create_gen_event())
+
+    {:ok, state}
+  end
+
+  @doc false
+  def __create_ticker_table do
+    ticker = :ets.new(:ticker, [:set, :protected, {:read_concurrency, true}])
+    %{ticker: ticker}
+  end
+
+  @doc false
+  def __create_gen_event do
+    {:ok, event_manager} = GenEvent.start_link()
+    %{event_manager: event_manager}
   end
 
   # Server (callbacks)
+
+  @doc false
+  def handle_call(:event_manager, _from, %{event_manager: event_manager} = state) do
+    {:reply, event_manager, state}
+  end
 
   @doc false
   def handle_call({:subscriber, subscriber}, _from, state) do
@@ -38,9 +61,9 @@ defmodule Krasukha.MarketsGen do
   end
 
   @doc false
-  def handle_call(:fetch_ticker, _from, %{ticker: tid} = state) do
+  def handle_call(:fetch_ticker, _from, state) do
     {:ok, 200, payload} = HTTP.return_ticker()
-    fetched = fetch_ticker(tid, payload)
+    fetched = fetch_ticker(state, payload)
     {:reply, fetched, state}
   end
 
@@ -57,8 +80,8 @@ defmodule Krasukha.MarketsGen do
   end
 
   @doc false
-  def handle_info({_module, _from, %{args: args}} = _message, %{ticker: tid} = state) when is_list(args) do
-    :ok = update_ticker(tid, args)
+  def handle_info({_module, _from, %{args: args}} = _message, state) when is_list(args) do
+    :ok = update_ticker(state, args)
     {:noreply, state}
   end
 
@@ -74,18 +97,23 @@ defmodule Krasukha.MarketsGen do
   import Krasukha.HTTP.PublicAPI, only: [to_float: 1]
 
   @doc false
-  def fetch_ticker(tid, payload) do
+  def fetch_ticker(%{ticker: tid} = state, payload) do
     Enum.map(payload, fn({k, v}) ->
-      object = ([ to_string(k) | (Map.values(v) |> Enum.map(fn(e) -> to_float(e) end)) ] |> List.to_tuple)
+      object = ([ to_atom(k) | (Map.values(v) |> Enum.map(fn(e) -> to_float(e) end)) ] |> List.to_tuple)
+      :ok = notify(state, {:fetch_ticker, object})
       :true = :ets.insert(tid, object)
     end)
     :ok
   end
 
   @doc false
-  def update_ticker(tid, [_, _, _, [h|t]]) do
-    object = ([ h | Enum.map(t, fn(e) -> to_float(e) end) ] |> List.to_tuple)
+  def update_ticker(%{ticker: tid} = state, [_, _, _, [h|t]]) do
+    object = ([ to_atom(h) | Enum.map(t, fn(e) -> to_float(e) end) ] |> List.to_tuple)
+    :ok = notify(state, {:update_ticker, object})
     :true = :ets.insert(tid, object)
     :ok
   end
+
+  defp notify(%{event_manager: event_manager}, event), do: GenEvent.notify(event_manager, event)
+  defp notify(%{}, _event), do: :ok
 end

@@ -8,11 +8,24 @@ defmodule Krasukha.MarketsGenTest do
     {:ok, [server: pid]}
   end
 
-  describe "a part of markets operations in case of" do
+  describe "server behavior" do
     test "process is alive", %{server: pid} do
       assert Process.alive?(pid)
     end
 
+    test "process terminates", %{server: pid} do
+      assert :ok = GenServer.stop(pid)
+    end
+  end
+
+  describe "event manager" do
+    test "event_manager", %{server: pid} do
+      event_manager = GenServer.call(pid, :event_manager)
+      assert Process.alive?(event_manager)
+    end
+  end
+
+  describe "a part of markets operations in case of" do
     test "ticker table is alive", %{server: pid} do
       tid = GenServer.call(pid, :ticker)
       assert :ets.info(tid, :name) == :ticker
@@ -22,10 +35,6 @@ defmodule Krasukha.MarketsGenTest do
       tid = GenServer.call(pid, :ticker)
       assert :ok = GenServer.call(pid, :clean_ticker)
       assert :ets.info(tid, :size) == 0
-    end
-
-    test "process terminates", %{server: pid} do
-      assert :ok = GenServer.stop(pid)
     end
   end
 
@@ -37,15 +46,25 @@ defmodule Krasukha.MarketsGenTest do
       assert :ets.info(tid, :size) > 0
     end
 
-    test "fetch_ticker/2" do
-      tid = :ets.new(:ticker, [:set, :protected, {:read_concurrency, true}])
-      payload =%{
-        "BTC_LTC" =>
-          %{"last" => "0.0251", "lowestAsk" => "0.02589999", "highestBid" => "0.0251", "percentChange" => "0.02390438","baseVolume" => "6.16485315", "quoteVolume" => "245.82513926"}
-      }
-      assert :ok = MarketsGen.fetch_ticker(tid, payload)
+    @payload %{ "BTC_LTC" => %{"last" => "0.0251", "lowestAsk" => "0.02589999", "highestBid" => "0.0251", "percentChange" => "0.02390438","baseVolume" => "6.16485315", "quoteVolume" => "245.82513926"} }
+
+    test "fetch_ticker/2 saves into :ets" do
+      %{ticker: tid} = state = MarketsGen.__create_ticker_table()
+      assert :ok = MarketsGen.fetch_ticker(state, @payload)
       assert :ets.info(tid, :size) == 1
-      assert [_] = :ets.lookup(tid, "BTC_LTC")
+      assert [_] = :ets.lookup(tid, :BTC_LTC)
+    end
+
+    test "fetch_ticker/2 notifies over GenEvent" do
+      state = %{}
+        |> Map.merge(MarketsGen.__create_ticker_table())
+        |> Map.merge(MarketsGen.__create_gen_event())
+
+      %{event_manager: event_manager} = state
+      assert :ok = GenEvent.add_handler(event_manager, EventHandler, [self()])
+
+      assert :ok = MarketsGen.fetch_ticker(state, @payload)
+      assert_receive {:fetch_ticker, {:BTC_LTC, 6.16485315, 0.0251, 0.0251, 0.02589999, 0.02390438, 245.82513926}}
     end
   end
 
@@ -68,11 +87,23 @@ defmodule Krasukha.MarketsGenTest do
       refute_receive :bye
     end
 
-    test "update_ticker/2" do
-      tid = :ets.new(:ticker, [:set, :protected, {:read_concurrency, true}])
-      assert :ok = MarketsGen.update_ticker(tid, @message)
+    test "update_ticker/2 saves into :est" do
+      %{ticker: tid} = state = MarketsGen.__create_ticker_table()
+      assert :ok = MarketsGen.update_ticker(state, @message)
       assert :ets.info(tid, :size) == 1
-      assert [_] = :ets.lookup(tid, "BTC_BBR")
+      assert [_] = :ets.lookup(tid, :BTC_BBR)
+    end
+
+    test "update_ticker/2 notifies over GenEvent" do
+      state = %{}
+        |> Map.merge(MarketsGen.__create_ticker_table())
+        |> Map.merge(MarketsGen.__create_gen_event())
+
+      %{event_manager: event_manager} = state
+      assert :ok = GenEvent.add_handler(event_manager, EventHandler, [self()])
+
+      assert :ok = MarketsGen.update_ticker(state, @message)
+      assert_receive {:update_ticker, {:BTC_BBR, 6.9501e-4, 7.4346e-4, 6.9501e-4, -0.00742634, 8.63286802, 11983.47150109, 0, 0.0010792, 4.5422e-4}}
     end
   end
 end
