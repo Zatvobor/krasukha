@@ -21,6 +21,7 @@ defmodule Krasukha.HTTP.PublicAPI do
   @doc false
   def to_tuple_with_floats([rate, amount]), do: {to_float(rate), to_float(amount)}
   def to_tuple_with_floats(%{"rate" => rate, "amount" => amount}), do: {to_float(rate), to_float(amount)}
+  def to_tuple_with_floats(%{"rate" => rate, "type" => type}), do: {to_float(rate), type}
 
   @doc false
   def to_float(value) when is_binary(value) do

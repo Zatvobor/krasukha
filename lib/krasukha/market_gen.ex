@@ -20,8 +20,15 @@ defmodule Krasukha.MarketGen do
 
     book_tids = __create_books_table(currency_pair)
     history_tid = __create_history_table(currency_pair)
+    event_manager = __create_gen_event()
 
-    {:ok, %{currency_pair: currency_pair, subscriber: subscriber, book_tids: book_tids, history_tid: history_tid}}
+    state = %{}
+      |> Map.merge(%{currency_pair: currency_pair, subscriber: subscriber})
+      |> Map.merge(book_tids)
+      |> Map.merge(history_tid)
+      |> Map.merge(event_manager)
+
+    {:ok, state}
   end
 
   @doc false
@@ -29,20 +36,31 @@ defmodule Krasukha.MarketGen do
     opts = [:ordered_set, :protected, :named_table, {:read_concurrency, true}]
     asks_book_tid = :ets.new(to_name(currency_pair, :asks), opts)
     bids_book_tid = :ets.new(to_name(currency_pair, :bids), opts)
-
-    %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}
+    %{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}}
   end
 
   @doc false
   def __create_history_table(currency_pair \\ "untitled") do
     opts = [:set, :protected, :named_table, {:read_concurrency, true}]
-    :ets.new(to_name(currency_pair, :history), opts)
+    history_tid = :ets.new(to_name(currency_pair, :history), opts)
+    %{history_tid: history_tid}
+  end
+
+  @doc false
+  def __create_gen_event() do
+    {:ok, event_manager} = GenEvent.start_link()
+    %{event_manager: event_manager}
   end
 
   @doc false
   def to_name(prefix, type), do: to_atom("#{String.downcase(prefix)}_#{type}")
 
   # Server (callbacks)
+
+  @doc false
+  def handle_call(:event_manager, _from, %{event_manager: event_manager} = state) do
+    {:reply, event_manager, state}
+  end
 
   @doc false
   def handle_call(:tids, _from, %{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}, history_tid: history_tid} = state) do
@@ -86,14 +104,14 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def handle_call(:fetch_order_book, _from, %{currency_pair: currency_pair, book_tids: book_tids} = state) do
-    fetched = fetch_order_book(book_tids, [currencyPair: currency_pair, depth: 1])
+  def handle_call(:fetch_order_book, _from, %{currency_pair: currency_pair} = state) do
+    fetched = fetch_order_book(state, [currencyPair: currency_pair, depth: 1])
     {:reply, fetched, state}
   end
 
   @doc false
-  def handle_call({:fetch_order_book, [depth: depth]} = _msg, _from, %{currency_pair: currency_pair, book_tids: book_tids} = state) do
-    fetched = fetch_order_book(book_tids, [currencyPair: currency_pair, depth: depth])
+  def handle_call({:fetch_order_book, [depth: depth]}, _from, %{currency_pair: currency_pair} = state) do
+    fetched = fetch_order_book(state, [currencyPair: currency_pair, depth: depth])
     {:reply, fetched, state}
   end
 
@@ -110,7 +128,7 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def handle_info({_module, _from, %{args: args}} = _message, state) do
+  def handle_info({_module, _from, %{args: args}}, state) do
     :ok = update_order_book(state, args)
     {:noreply, state}
   end
@@ -125,22 +143,20 @@ defmodule Krasukha.MarketGen do
   # Client API
 
   @doc false
-  defp fetch_order_book(book_tids, params) do
+  defp fetch_order_book(state, params) do
     {:ok, 200, %{asks: asks, bids: bids, isFrozen: "0"}} = HTTP.return_order_book(params)
-    fetch_order_book(book_tids, asks, bids)
+    fetch_order_book(state, asks, bids)
   end
 
 
   import Krasukha.HTTP.PublicAPI, only: [to_tuple_with_floats: 1, to_float: 1]
 
   @doc false
-  def fetch_order_book(%{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}, asks, bids) do
+  def fetch_order_book(%{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}} = state, asks, bids) do
     flow = [{asks, asks_book_tid}, {bids, bids_book_tid}]
     Enum.each(flow, fn({records, tid}) ->
-      objects = Enum.map(records, fn(record) ->
-        object = to_tuple_with_floats(record)
-        object
-      end)
+      objects = Enum.map(records, fn(record) -> to_tuple_with_floats(record) end)
+      :ok = notify(state, {:fetch_order_book, objects})
       :true = :ets.insert(tid, objects)
     end)
     :ok
@@ -156,6 +172,7 @@ defmodule Krasukha.MarketGen do
   def update_order_book(state, %{"data" => data, "type" => "orderBookModify"}) do
     tid = book_tid(state, data["type"])
     object = to_tuple_with_floats(data)
+    :ok = notify(state, {:update_order_book, :orderBookModify, object})
     :true = :ets.insert(tid, object)
   end
 
@@ -163,6 +180,8 @@ defmodule Krasukha.MarketGen do
   def update_order_book(state, %{"data" => data, "type" => "orderBookRemove"}) do
     tid = book_tid(state, data["type"])
     key = to_float(data["rate"])
+    object = to_tuple_with_floats(data)
+    :ok = notify(state, {:update_order_book, :orderBookRemove, object})
     :true = :ets.delete(tid, key)
   end
 
@@ -173,16 +192,20 @@ defmodule Krasukha.MarketGen do
     case :ets.lookup(tid, to_float(data["rate"])) do
       [{rate, amount}] ->
         object = {rate, (amount - to_float(data["amount"]))}
+        :ok = notify(state, {:update_order_book, :newTrade, object})
         :true = :ets.insert(tid, object)
       [] -> :ok #do nothing
     end
     # update trading history
     tid = history_tid(state)
     object = {data["date"], to_atom(data["type"]), to_float(data["rate"]), to_float(data["amount"]), to_float(data["total"]), data["tradeID"]}
+    :ok = notify(state, {:update_order_history, object})
     :true = :ets.insert(tid, object)
   end
 
-  defp book_tid(%{book_tids: %{asks_book_tid: asks_book_tid}} = _state, type) when type in [:asks, "ask", "buy"], do: asks_book_tid
-  defp book_tid(%{book_tids: %{bids_book_tid: bids_book_tid}} = _state, type) when type in [:bids, "bid", "sell"], do: bids_book_tid
-  defp history_tid(%{history_tid: history_tid} = _state), do: history_tid
+  defp book_tid(%{book_tids: %{asks_book_tid: asks_book_tid}}, type) when type in [:asks, "ask", "buy"], do: asks_book_tid
+  defp book_tid(%{book_tids: %{bids_book_tid: bids_book_tid}}, type) when type in [:bids, "bid", "sell"], do: bids_book_tid
+  defp history_tid(%{history_tid: history_tid}), do: history_tid
+  defp notify(%{event_manager: event_manager}, event), do: GenEvent.notify(event_manager, event)
+  defp notify(%{}, _event), do: :ok
 end

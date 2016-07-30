@@ -8,11 +8,24 @@ defmodule Krasukha.MarketGenTest do
     {:ok, [server: pid]}
   end
 
-  describe "a part of order book operations in case of" do
+  describe "server behavior" do
     test "process is alive", %{server: pid} do
       assert Process.alive?(pid)
     end
 
+    test "process terminates", %{server: pid} do
+      assert :ok == GenServer.stop(pid)
+    end
+  end
+
+  describe "event manager" do
+    test "event_manager", %{server: pid} do
+      event_manager = GenServer.call(pid, :event_manager)
+      assert Process.alive?(event_manager)
+    end
+  end
+
+  describe "a part of order book operations in case of" do
     test "clean_order_book", %{server: pid} do
       GenServer.call(pid, :clean_order_book)
       assert :ok == GenServer.call(pid, :clean_order_book)
@@ -75,10 +88,6 @@ defmodule Krasukha.MarketGenTest do
       tid = GenServer.call(pid, :history_tid)
       assert :ets.info(tid, :name) == :btc_sc_history
     end
-
-    test "process terminates", %{server: pid} do
-      assert :ok == GenServer.stop(pid)
-    end
   end
 
   describe "order_book is fetching, using" do
@@ -90,24 +99,44 @@ defmodule Krasukha.MarketGenTest do
       assert :ets.info(bids_book_tid, :size) == 1
     end
 
-    test "fetch_order_book/3" do
+    test "fetch_order_book/3 and inserting object into :ets" do
       asks = [["0.05", 1], [0.06, 1]]
       bids = [[0.04, 1], [0.03, "1"]]
-      book_tids = MarketGen.__create_books_table()
+      %{book_tids: book_tids} = state = MarketGen.__create_books_table()
       %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid} = book_tids
 
-      assert :ok = MarketGen.fetch_order_book(book_tids, asks, bids)
+      assert :ok = MarketGen.fetch_order_book(state, asks, bids)
       assert :ets.info(asks_book_tid, :size) == 2
       assert :ets.lookup(asks_book_tid, 0.05) == [{0.05, 1}]
       assert :ets.info(bids_book_tid, :size) == 2
       assert :ets.lookup(bids_book_tid, 0.03) == [{0.03, 1}]
     end
+
+    test "fetch_order_book/3 and notifying object over GenEvent" do
+      asks = [["0.05", 1], [0.06, 1]]
+      bids = [[0.04, 1], [0.03, "1"]]
+      state = %{}
+        |> Map.merge(MarketGen.__create_books_table())
+        |> Map.merge(MarketGen.__create_gen_event())
+
+      %{event_manager: event_manager} = state
+      assert :ok = GenEvent.add_handler(event_manager, EventHandler, [self()])
+      assert :ok = MarketGen.fetch_order_book(state, asks, bids)
+      assert_receive {:fetch_order_book, [{0.05, 1}, {0.06, 1}]}
+      assert_receive {:fetch_order_book, [{0.04, 1}, {0.03, 1}]}
+    end
   end
 
   describe "order_book is updating, in case of 'orderBookModify' type" do
     setup do
-      book_tids = MarketGen.__create_books_table()
-      {:ok, [book_tids: book_tids]}
+      state = %{}
+        |> Map.merge(MarketGen.__create_books_table())
+        |> Map.merge(MarketGen.__create_gen_event())
+
+      %{event_manager: event_manager} = state
+      assert :ok = GenEvent.add_handler(event_manager, EventHandler, [self()])
+
+      {:ok, state}
     end
 
     @message [6956793409822983, 4840230496786428, %{},
@@ -118,26 +147,40 @@ defmodule Krasukha.MarketGenTest do
         %{"seq" => 733186}
     ]
 
-    test "update_order_book/3 places slots into stack", %{book_tids: %{asks_book_tid: tid}} = state do
+    test "update_order_book/2 places slots into stack", %{book_tids: %{asks_book_tid: tid}} = state do
       assert :ok = MarketGen.update_order_book(state, @message)
 
       assert :ets.info(tid, :size) == 2
       assert :ets.lookup(tid, 0.00000110) == [{0.00000110, 10.10}]
     end
 
-    test "update_order_book/3 modifies amount in existing slots", %{book_tids: %{asks_book_tid: tid}} = state do
+    test "update_order_book/2 modifies amount in existing slots", %{book_tids: %{asks_book_tid: tid}} = state do
       assert :true = :ets.insert(tid, {0.00000110, 1})
       assert :ok = MarketGen.update_order_book(state, @message)
 
       assert :ets.info(tid, :size) == 2
       assert :ets.lookup(tid, 0.00000110) == [{0.00000110, 10.10}]
     end
+
+    test "update_order_book/2 notifies object over GenEvent", %{book_tids: %{asks_book_tid: tid}} = state do
+      assert :ok = MarketGen.update_order_book(state, @message)
+      assert :ets.info(tid, :size) == 2
+      assert :ets.lookup(tid, 0.00000110) == [{0.00000110, 10.10}]
+      assert_receive {:update_order_book, :orderBookModify, {1.1e-6, 10.1}}
+      assert_receive {:update_order_book, :orderBookModify, {1.11e-6, 20}}
+    end
   end
 
   describe "order_book is updating, in case of 'orderBookRemove' type" do
     setup do
-      book_tids = MarketGen.__create_books_table()
-      {:ok, [book_tids: book_tids]}
+      state = %{}
+        |> Map.merge(MarketGen.__create_books_table())
+        |> Map.merge(MarketGen.__create_gen_event())
+
+      %{event_manager: event_manager} = state
+      assert :ok = GenEvent.add_handler(event_manager, EventHandler, [self()])
+
+      {:ok, state}
     end
 
     @message [6956793409822983, 4840230496786428, %{},
@@ -147,27 +190,41 @@ defmodule Krasukha.MarketGenTest do
         %{"seq" => 733186}
     ]
 
-    test "update_order_book/3 places slots into stack", %{book_tids: %{bids_book_tid: tid}} = state do
+    test "update_order_book/2 places slots into stack", %{book_tids: %{bids_book_tid: tid}} = state do
       assert :ok = MarketGen.update_order_book(state, @message)
 
       assert :ets.info(tid, :size) == 0
       assert :ets.lookup(tid, 0.00000110) == []
     end
 
-    test "update_order_book/3 modifies amount in existing slots", %{book_tids: %{bids_book_tid: tid}} = state do
+    test "update_order_book/2 modifies amount in existing slots", %{book_tids: %{bids_book_tid: tid}} = state do
       assert :true = :ets.insert(tid, {0.00000110, 1})
       assert :ok = MarketGen.update_order_book(state, @message)
 
       assert :ets.info(tid, :size) == 0
       assert :ets.lookup(tid, 0.00000110) == []
     end
+
+    test "update_order_book/2 notifies object over GenEvent", %{book_tids: %{bids_book_tid: tid}} = state do
+      assert :ok = MarketGen.update_order_book(state, @message)
+
+      assert :ets.info(tid, :size) == 0
+      assert :ets.lookup(tid, 0.00000110) == []
+      assert_receive {:update_order_book, :orderBookRemove, {1.1e-6, "bid"}}
+    end
   end
 
   describe "order_book is updating, in case of 'newTrade' type" do
     setup do
-      book_tids = MarketGen.__create_books_table()
-      history_tid = MarketGen.__create_history_table()
-      {:ok, [book_tids: book_tids, history_tid: history_tid]}
+      state = %{}
+        |> Map.merge(MarketGen.__create_books_table())
+        |> Map.merge(MarketGen.__create_gen_event())
+        |> Map.merge(MarketGen.__create_history_table())
+
+      %{event_manager: event_manager} = state
+      assert :ok = GenEvent.add_handler(event_manager, EventHandler, [self()])
+
+      {:ok, state}
     end
 
     @message [6956793409822983, 4840230496786428, %{},
@@ -177,19 +234,27 @@ defmodule Krasukha.MarketGenTest do
         %{"seq" => 733186}
     ]
 
-    test "update_order_book/3 places slots into stack", %{book_tids: %{bids_book_tid: tid}} = state do
+    test "update_order_book/2 places slots into stack", %{book_tids: %{bids_book_tid: tid}} = state do
       assert :ok = MarketGen.update_order_book(state, @message)
 
       assert :ets.info(tid, :size) == 0
       assert :ets.lookup(tid, 0.00000110) == []
     end
 
-    test "update_order_book/3 modifies amount in existing slots", %{book_tids: %{bids_book_tid: tid}} = state do
+    test "update_order_book/2 modifies amount in existing slots", %{book_tids: %{bids_book_tid: tid}} = state do
       assert :true = :ets.insert(tid, {0.00000110, 20.15})
       assert :ok = MarketGen.update_order_book(state, @message)
 
       assert :ets.info(tid, :size) == 1
       assert :ets.lookup(tid, 0.00000110) == [{0.00000110, 10.12}]
+    end
+
+    test "update_order_book/2 notifies object over GenEvent", %{book_tids: %{bids_book_tid: tid}} = state do
+      assert :ok = MarketGen.update_order_book(state, @message)
+
+      assert :ets.info(tid, :size) == 0
+      assert :ets.lookup(tid, 0.00000110) == []
+      assert_receive {:update_order_history, {"2014-10-07 21:51:20", :sell, 1.1e-6, 10.03, 1.1e-5, 1}}
     end
   end
 end
