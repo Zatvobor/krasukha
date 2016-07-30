@@ -18,15 +18,11 @@ defmodule Krasukha.MarketGen do
   def init([currency_pair]) do
     %{subscriber: subscriber} = WAMP.connection()
 
-    book_tids = __create_books_table(currency_pair)
-    history_tid = __create_history_table(currency_pair)
-    event_manager = __create_gen_event()
-
     state = %{}
       |> Map.merge(%{currency_pair: currency_pair, subscriber: subscriber})
-      |> Map.merge(book_tids)
-      |> Map.merge(history_tid)
-      |> Map.merge(event_manager)
+      |> Map.merge(__create_books_table(currency_pair))
+      |> Map.merge(__create_history_table(currency_pair))
+      |> Map.merge(__create_gen_event())
 
     {:ok, state}
   end
