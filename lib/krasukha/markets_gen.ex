@@ -50,7 +50,7 @@ defmodule Krasukha.MarketsGen do
   end
 
   @doc false
-  def handle_call(:ticker, _from, %{ticker: tid} = state) do
+  def handle_call(:ticker_tid, _from, %{ticker: tid} = state) do
     {:reply, tid, state}
   end
 

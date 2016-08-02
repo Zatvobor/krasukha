@@ -27,12 +27,12 @@ defmodule Krasukha.MarketsGenTest do
 
   describe "a part of markets operations in case of" do
     test "ticker table is alive", %{server: pid} do
-      tid = GenServer.call(pid, :ticker)
+      tid = GenServer.call(pid, :ticker_tid)
       assert :ets.info(tid, :name) == :ticker
     end
 
     test "clean_ticker", %{server: pid} do
-      tid = GenServer.call(pid, :ticker)
+      tid = GenServer.call(pid, :ticker_tid)
       assert :ok = GenServer.call(pid, :clean_ticker)
       assert :ets.info(tid, :size) == 0
     end
