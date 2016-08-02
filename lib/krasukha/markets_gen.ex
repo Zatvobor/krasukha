@@ -99,7 +99,7 @@ defmodule Krasukha.MarketsGen do
   @doc false
   def fetch_ticker(%{ticker: tid} = state, payload) do
     Enum.map(payload, fn({k, v}) ->
-      object = ([ to_atom(k) | (Map.values(v) |> Enum.map(fn(e) -> to_float(e) end)) ] |> List.to_tuple)
+      object = ([ k | (Map.values(v) |> Enum.map(fn(e) -> to_float(e) end)) ] |> List.to_tuple)
       :ok = notify(state, {:fetch_ticker, object})
       :true = :ets.insert(tid, object)
     end)

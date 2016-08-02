@@ -46,7 +46,7 @@ defmodule Krasukha.MarketsGenTest do
       assert :ets.info(tid, :size) > 0
     end
 
-    @payload %{ "BTC_LTC" => %{"last" => "0.0251", "lowestAsk" => "0.02589999", "highestBid" => "0.0251", "percentChange" => "0.02390438","baseVolume" => "6.16485315", "quoteVolume" => "245.82513926"} }
+    @payload %{ BTC_LTC: %{"last" => "0.0251", "lowestAsk" => "0.02589999", "highestBid" => "0.0251", "percentChange" => "0.02390438","baseVolume" => "6.16485315", "quoteVolume" => "245.82513926"} }
 
     test "fetch_ticker/2 saves into :ets" do
       %{ticker: tid} = state = MarketsGen.__create_ticker_table()
