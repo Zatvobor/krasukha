@@ -40,6 +40,12 @@ defmodule Krasukha do
   end
 
   @doc false
+  def start_secret_agent(key, secret) do
+    spec = worker(Krasukha.SecretAgent, [key, secret], [restart: :permanent])
+    Supervisor.start_child(Krasukha.Supervisor, spec)
+  end
+
+  @doc false
   def stop(_state) do
     Krasukha.WAMP.disconnect!()
   end
