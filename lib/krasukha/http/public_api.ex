@@ -8,14 +8,20 @@ defmodule Krasukha.HTTP.PublicAPI do
 
   @doc false
   def return_order_book(params \\ [currencyPair: "BTC_NXT", depth: 1]) do
-    url = HTTP.url("returnOrderBook", params, uri)
-    HTTP.get(url)
+    HTTP.url("returnOrderBook", params, uri)
+      |> HTTP.get
   end
 
   @doc false
   def return_ticker() do
-    url = HTTP.url("returnTicker", [], uri)
-    HTTP.get(url)
+    HTTP.url("returnTicker", [], uri)
+      |> HTTP.get
+  end
+
+  @doc false
+  def return_loan_orders(currency) do
+    HTTP.url("returnLoanOrders", [currency: currency], uri)
+      |> HTTP.get
   end
 
   @doc false
