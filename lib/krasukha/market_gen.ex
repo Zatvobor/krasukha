@@ -140,7 +140,7 @@ defmodule Krasukha.MarketGen do
 
   @doc false
   defp fetch_order_book(state, params) do
-    {:ok, 200, %{asks: asks, bids: bids, isFrozen: "0"}} = HTTP.return_order_book(params)
+    {:ok, 200, %{asks: asks, bids: bids, isFrozen: "0"}} = HTTP.PublicAPI.return_order_book(params)
     fetch_order_book(state, asks, bids)
   end
 

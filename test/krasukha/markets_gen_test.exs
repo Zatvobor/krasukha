@@ -41,7 +41,7 @@ defmodule Krasukha.MarketsGenTest do
   describe "ticker is fetching, using" do
     @tag :external
     test "fetch_ticker", %{server: pid} do
-      tid = GenServer.call(pid, :ticker)
+      tid = GenServer.call(pid, :ticker_tid)
       assert :ok = GenServer.call(pid, :fetch_ticker)
       assert :ets.info(tid, :size) > 0
     end

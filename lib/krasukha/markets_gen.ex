@@ -62,7 +62,7 @@ defmodule Krasukha.MarketsGen do
 
   @doc false
   def handle_call(:fetch_ticker, _from, state) do
-    {:ok, 200, payload} = HTTP.return_ticker()
+    {:ok, 200, payload} = HTTP.PublicAPI.return_ticker()
     fetched = fetch_ticker(state, payload)
     {:reply, fetched, state}
   end

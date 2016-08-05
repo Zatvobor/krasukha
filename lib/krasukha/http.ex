@@ -1,13 +1,6 @@
 defmodule Krasukha.HTTP do
   @moduledoc false
 
-  alias Krasukha.HTTP.PublicAPI
-
-  @doc false
-  defdelegate return_order_book(params), to: PublicAPI
-  defdelegate return_ticker(), to: PublicAPI
-  defdelegate return_loan_orders(currency), to: PublicAPI
-
 
   @uri URI.parse("https://poloniex.com")
   @doc false
