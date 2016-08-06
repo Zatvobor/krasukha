@@ -15,7 +15,7 @@ defmodule Krasukha.Mixfile do
 
   def application do
     [
-      applications: [:logger, :spell],
+      applications: [:logger, :crypto, :inets, :ssl, :spell],
       mod: {Krasukha, []}
     ]
   end
