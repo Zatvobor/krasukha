@@ -1,5 +1,5 @@
 defmodule Krasukha.MarketsGenTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Krasukha.{MarketsGen, WAMP}
 
