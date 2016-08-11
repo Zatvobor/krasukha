@@ -47,8 +47,6 @@ defmodule Krasukha.MarketGen do
     %{event_manager: event_manager}
   end
 
-  @doc false
-  def to_name(prefix, type), do: to_atom("#{String.downcase(prefix)}_#{type}")
 
   # Server (callbacks)
 

@@ -11,6 +11,7 @@ defmodule Krasukha.MarketsGenTest do
   describe "server behavior" do
     test "process is alive", %{server: pid} do
       assert Process.alive?(pid)
+      assert is_pid(Process.whereis(:markets))
     end
 
     test "process terminates", %{server: pid} do

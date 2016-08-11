@@ -2,6 +2,7 @@ defmodule Krasukha.Helpers.String do
   @moduledoc false
 
   defdelegate to_atom(string), to: String
+  defdelegate downcase(prefix), to: String
 
 
   @doc false
@@ -18,4 +19,7 @@ defmodule Krasukha.Helpers.String do
     ArgumentError -> String.to_integer(value)
   end
   def to_float(value), do: value
+
+  @doc false
+  def to_name(prefix, type), do: to_atom("#{downcase(prefix)}_#{type}")
 end

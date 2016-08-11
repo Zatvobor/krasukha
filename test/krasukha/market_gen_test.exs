@@ -11,6 +11,7 @@ defmodule Krasukha.MarketGenTest do
   describe "server behavior" do
     test "process is alive", %{server: pid} do
       assert Process.alive?(pid)
+      assert is_pid(Process.whereis(:btc_sc_market))
     end
 
     test "process terminates", %{server: pid} do
@@ -27,8 +28,7 @@ defmodule Krasukha.MarketGenTest do
 
   describe "a part of order book operations in case of" do
     test "clean_order_book", %{server: pid} do
-      GenServer.call(pid, :clean_order_book)
-      assert :ok == GenServer.call(pid, :clean_order_book)
+      assert :ok = GenServer.call(pid, :clean_order_book)
     end
 
     test "tids", %{server: pid} do

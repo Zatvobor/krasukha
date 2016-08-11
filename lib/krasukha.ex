@@ -4,6 +4,8 @@ defmodule Krasukha do
   use Application
 
   import Supervisor.Spec, warn: false, only: [worker: 3]
+  import Krasukha.Helpers.String
+
 
   @doc false
   def start(:normal, _args \\ nil) do
@@ -28,7 +30,6 @@ defmodule Krasukha do
 
   @doc false
   def start_market(currency_pair) do
-    import Krasukha.MarketGen, only: [to_name: 2]
     spec = worker(Krasukha.MarketGen, [currency_pair], [id: to_name(currency_pair, :market), restart: :transient])
     Supervisor.start_child(Krasukha.Supervisor, spec)
   end
