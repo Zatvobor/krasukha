@@ -3,8 +3,7 @@ defmodule Krasukha.MarketsGen do
 
   use GenServer
 
-  import String, only: [to_atom: 1]
-
+  import Krasukha.Helpers.String
   alias Krasukha.{HTTP, WAMP}
 
 
@@ -93,8 +92,6 @@ defmodule Krasukha.MarketsGen do
 
 
   # Client API
-
-  import Krasukha.HTTP.PublicAPI, only: [to_float: 1]
 
   @doc false
   def fetch_ticker(%{ticker: tid} = state, payload) do

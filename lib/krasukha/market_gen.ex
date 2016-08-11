@@ -3,8 +3,7 @@ defmodule Krasukha.MarketGen do
 
   use GenServer
 
-  import String, only: [to_atom: 1]
-
+  import Krasukha.Helpers.String
   alias Krasukha.{HTTP, WAMP}
 
 
@@ -143,9 +142,6 @@ defmodule Krasukha.MarketGen do
     {:ok, 200, %{asks: asks, bids: bids, isFrozen: "0"}} = HTTP.PublicAPI.return_order_book(params)
     fetch_order_book(state, asks, bids)
   end
-
-
-  import Krasukha.HTTP.PublicAPI, only: [to_tuple_with_floats: 1, to_float: 1]
 
   @doc false
   def fetch_order_book(%{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}} = state, asks, bids) do
