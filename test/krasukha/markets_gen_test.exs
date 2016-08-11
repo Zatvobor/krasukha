@@ -52,7 +52,7 @@ defmodule Krasukha.MarketsGenTest do
       %{ticker: tid} = state = MarketsGen.__create_ticker_table()
       assert :ok = MarketsGen.fetch_ticker(state, @payload)
       assert :ets.info(tid, :size) == 1
-      assert [_] = :ets.lookup(tid, :BTC_LTC)
+      assert :ets.lookup(tid, :BTC_LTC) == [{:BTC_LTC, 6.16485315, 0.0251, 0.0251, 0.02589999, 0.02390438, 245.82513926}]
     end
 
     test "fetch_ticker/2 notifies over GenEvent" do
