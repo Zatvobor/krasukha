@@ -41,6 +41,19 @@ defmodule Krasukha do
   end
 
   @doc false
+  def start_lending(currency) do
+    spec = worker(Krasukha.LendingGen, [currency], [id: to_name(currency, :lending), restart: :transient])
+    Supervisor.start_child(Krasukha.Supervisor, spec)
+  end
+
+  @doc false
+  def start_lending!(currency, update_loan_orders_every_sec \\ 60) do
+    {:ok, pid} = start_lending(currency)
+    initial_requests = [{:update_loan_orders, [every: update_loan_orders_every_sec]}]
+    init(pid, initial_requests)
+  end
+
+  @doc false
   def start_secret_agent(key, secret) do
     spec = worker(Krasukha.SecretAgent, [key, secret], [restart: :permanent])
     Supervisor.start_child(Krasukha.Supervisor, spec)

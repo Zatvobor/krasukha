@@ -7,8 +7,8 @@ Krasukha.start_lending!("BTC")
 # fetch over HTTP using `{:ok, 200, response} = HTTP.PublicAPI.return_loan_orders/1`
 :ok = GenServer.call(:btc_lending, :fetch_loan_orders)
 
-# update loan orders every 10 minutes
-:ok = GenServer.call(:btc_lending, {:update_loan_orders, [every: 10]})
+# update loan orders every 60 seconds
+:ok = GenServer.call(:btc_lending, {:update_loan_orders, [every: 60]})
 :ok = GenServer.call(:btc_lending, :stop_to_update_loan_orders)
 
 
