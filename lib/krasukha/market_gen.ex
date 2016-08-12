@@ -3,13 +3,13 @@ defmodule Krasukha.MarketGen do
 
   use GenServer
 
-  import Krasukha.Helpers.String
-  alias Krasukha.{HTTP, WAMP}
+  alias Krasukha.{HTTP, WAMP, Helpers, Helpers.Naming}
+  import Helpers.String, only: [to_atom: 1, to_float: 1, to_tuple_with_floats: 1]
 
 
   @doc false
   def start_link(currency_pair) when is_binary(currency_pair) do
-    options = [name: to_name(currency_pair, :market)]
+    options = [name: Naming.process_name(currency_pair, :market)]
     GenServer.start_link(__MODULE__, [currency_pair], options)
   end
 
@@ -29,15 +29,15 @@ defmodule Krasukha.MarketGen do
   @doc false
   def __create_books_table(currency_pair \\ "untitled") do
     opts = [:ordered_set, :protected, :named_table, {:read_concurrency, true}]
-    asks_book_tid = :ets.new(to_name(currency_pair, :asks), opts)
-    bids_book_tid = :ets.new(to_name(currency_pair, :bids), opts)
+    asks_book_tid = :ets.new(Naming.to_name(currency_pair, :asks), opts)
+    bids_book_tid = :ets.new(Naming.to_name(currency_pair, :bids), opts)
     %{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}}
   end
 
   @doc false
   def __create_history_table(currency_pair \\ "untitled") do
     opts = [:set, :protected, :named_table, {:read_concurrency, true}]
-    history_tid = :ets.new(to_name(currency_pair, :history), opts)
+    history_tid = :ets.new(Naming.to_name(currency_pair, :history), opts)
     %{history_tid: history_tid}
   end
 

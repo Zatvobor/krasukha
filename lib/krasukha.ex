@@ -4,7 +4,8 @@ defmodule Krasukha do
   use Application
 
   import Supervisor.Spec, warn: false, only: [worker: 3]
-  import Krasukha.Helpers.String
+
+  alias Krasukha.{Helpers.Naming, SecretAgent, MarketsGen, MarketGen, LendingGen, WAMP}
 
 
   @doc false
@@ -14,11 +15,15 @@ defmodule Krasukha do
   end
 
   @doc false
-  def start_wamp_connection, do: Krasukha.WAMP.connect!
+  def stop(_state), do: WAMP.disconnect!()
+
+
+  @doc false
+  def start_wamp_connection, do: WAMP.connect!
 
   @doc false
   def start_markets do
-    spec = worker(Krasukha.MarketsGen, [], [restart: :transient])
+    spec = worker(MarketsGen, [], [restart: :transient])
     Supervisor.start_child(Krasukha.Supervisor, spec)
   end
 
@@ -30,7 +35,7 @@ defmodule Krasukha do
 
   @doc false
   def start_market(currency_pair) do
-    spec = worker(Krasukha.MarketGen, [currency_pair], [id: to_name(currency_pair, :market), restart: :transient])
+    spec = worker(MarketGen, [currency_pair], [id: Naming.process_name(currency_pair, :market), restart: :transient])
     Supervisor.start_child(Krasukha.Supervisor, spec)
   end
 
@@ -42,7 +47,7 @@ defmodule Krasukha do
 
   @doc false
   def start_lending(currency) do
-    spec = worker(Krasukha.LendingGen, [currency], [id: to_name(currency, :lending), restart: :transient])
+    spec = worker(LendingGen, [currency], [id: Naming.process_name(currency, :lending), restart: :transient])
     Supervisor.start_child(Krasukha.Supervisor, spec)
   end
 
@@ -55,13 +60,8 @@ defmodule Krasukha do
 
   @doc false
   def start_secret_agent(key, secret) do
-    spec = worker(Krasukha.SecretAgent, [key, secret], [restart: :permanent])
+    spec = worker(SecretAgent, [key, secret], [restart: :permanent])
     Supervisor.start_child(Krasukha.Supervisor, spec)
-  end
-
-  @doc false
-  def stop(_state) do
-    Krasukha.WAMP.disconnect!()
   end
 
 

@@ -3,8 +3,9 @@ defmodule Krasukha.MarketsGen do
 
   use GenServer
 
-  import Krasukha.Helpers.String
-  alias Krasukha.{HTTP, WAMP}
+  alias Krasukha.{HTTP, WAMP, Helpers}
+
+  import Helpers.String, only: [to_atom: 1, to_float: 1]
 
 
   @doc false

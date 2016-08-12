@@ -3,13 +3,14 @@ defmodule Krasukha.LendingGen do
 
   use GenServer
 
-  import Krasukha.Helpers.String
-  alias Krasukha.{HTTP}
+  alias Krasukha.{HTTP, Helpers.Naming}
+
+  import Krasukha.Helpers.String, only: [to_tuple_with_floats: 1]
 
 
   @doc false
   def start_link(currency) when is_binary(currency) do
-    options = [name: to_name(currency, :lending)]
+    options = [name: Naming.process_name(currency, :lending)]
     GenServer.start_link(__MODULE__, [currency], options)
   end
 
@@ -25,8 +26,8 @@ defmodule Krasukha.LendingGen do
   @doc false
   def __create_loan_orders_tables(currency \\ "untitled") do
     opts = [:ordered_set, :protected, :named_table, {:read_concurrency, true}]
-    offers_tid  = :ets.new(to_name(currency, :loan_offers), opts)
-    demands_tid = :ets.new(to_name(currency, :loan_demands), opts)
+    offers_tid  = :ets.new(Naming.to_name(currency, :loan_offers), opts)
+    demands_tid = :ets.new(Naming.to_name(currency, :loan_demands), opts)
     %{orders_tids: %{offers_tid: offers_tid, demands_tid: demands_tid}}
   end
 
