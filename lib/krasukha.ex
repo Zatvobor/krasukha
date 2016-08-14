@@ -3,15 +3,22 @@ defmodule Krasukha do
 
   use Application
 
-  import Supervisor.Spec, warn: false, only: [worker: 3]
+  import Supervisor.Spec, warn: false, only: [supervisor: 3, worker: 3]
 
-  alias Krasukha.{Helpers.Naming, SecretAgent, MarketsGen, MarketGen, LendingGen, WAMP}
+  alias Krasukha.{Helpers.Naming, SecretAgent, MarketsGen, MarketGen, LendingGen, LendingRoutines, WAMP}
 
 
   @doc false
   def start(:normal, _args \\ nil) do
+    children = [
+      supervisor(
+        Supervisor,
+        [[], [strategy: :one_for_one, name: Krasukha.LendingSup]],
+        [id: Krasukha.LendingSup, restart: :permanent]
+      )
+    ]
     opts = [strategy: :one_for_one, name: Krasukha.Supervisor]
-    Supervisor.start_link([], opts)
+    Supervisor.start_link(children, opts)
   end
 
   @doc false
@@ -59,8 +66,14 @@ defmodule Krasukha do
   end
 
   @doc false
+  def start_lending_routine(agent, strategy, params) do
+    spec = worker(LendingRoutines, [agent, strategy, params], [id: :erlang.unique_integer([:monotonic]), restart: :transient])
+    Supervisor.start_child(Krasukha.LendingSup, spec)
+  end
+
+  @doc false
   def start_secret_agent(key, secret) do
-    spec = worker(SecretAgent, [key, secret], [restart: :permanent])
+    spec = worker(SecretAgent, [key, secret], [id: :erlang.unique_integer([:monotonic]), restart: :permanent])
     Supervisor.start_child(Krasukha.Supervisor, spec)
   end
 
