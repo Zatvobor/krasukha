@@ -6,47 +6,53 @@ defmodule Krasukha.LendingRoutines do
 
   @doc false
   def start_link(agent, strategy, params) do
-    pid = start_routine(agent, strategy, params)
+    pid = start(agent, strategy, params)
+    :true = Process.link(pid)
     {:ok, pid}
   end
 
   @doc false
-  def start_routine(agent, strategy, %{currency: currency} = params) do
+  def start(agent, strategy, %{currency: currency} = params) do
     # initial state starts w/ default params
-    state = %{fetch_loan_orders: false, sleep_time_inactive: 60, gap_top_position: 10}
+    state = %{fulfill_immediately: false, fetch_loan_orders: false, sleep_time_inactive: 60, gap_top_position: 10}
       |> Map.merge(params)
       |> Map.merge(%{currency_lending: Naming.process_name(currency, :lending)})
       |> Map.merge(%{agent: agent})
 
-    spawn_link(__MODULE__, strategy, [state])
+    spawn(__MODULE__, :start_routine, [strategy, state])
   end
 
+  @doc false
+  def available_balance_to_gap_position(params) do
+    balance = get_account_balance(params)
+    if is_binary(balance) do
+      {rate, _, _, _} = find_offer_object(params)
+      rate = float_to_binary(rate)
+      create_loan_offer(rate, balance, params)
+    end
+  end
 
   @doc false
-  def available_balance_to_top_gap_top_position(%{sleep_time_inactive: sleep_time_inactive} = params) do
+  def start_routine(strategy, %{fulfill_immediately: fulfill_immediately} = params) do
     Process.flag(:trap_exit, true)
+    if(fulfill_immediately, do: apply(__MODULE__, strategy, [params]))
+    loop(strategy, params)
+  end
+
+  @doc false
+  def loop(strategy, %{sleep_time_inactive: sleep_time_inactive} = params) do
     receive do
       {:EXIT, _, :normal} -> :ok
     after
       sleep_time_inactive * 1000 ->
-        {rate, amount, _, _} = find_offer_object(params)
-        rate = float_to_binary(rate)
-        balance = get_account_balance(params)
-        cond do
-          is_binary(balance) ->
-            create_loan_offer(rate, balance, params)
-          balance == nil ->
-            :ok
-        end
-        available_balance_to_top_gap_top_position(params)
+        apply(__MODULE__, strategy, [params])
+        loop(strategy, params)
     end
   end
 
   @doc false
   def find_offer_object(%{gap_top_position: gap_top_position, currency_lending: currency_lending, fetch_loan_orders: fetch_loan_orders}) do
-    if fetch_loan_orders do
-      GenServer.call(currency_lending, :fetch_loan_orders)
-    end
+    if(fetch_loan_orders, do: GenServer.call(currency_lending, :fetch_loan_orders))
     offers_tid = GenServer.call(currency_lending, :offers_tid)
     [object] = :ets.slot(offers_tid, gap_top_position)
     object
@@ -54,8 +60,8 @@ defmodule Krasukha.LendingRoutines do
 
   @doc false
   def get_account_balance(%{agent: agent, currency: currency}) do
-    balance = SecretAgent.account_balance!(agent, :lending)[String.to_atom(currency)]
-    if balance, do: float_to_binary(balance)
+    SecretAgent.account_balance!(agent, :lending)[String.to_atom(currency)]
+      |> float_to_binary()
   end
 
   @doc false
@@ -65,5 +71,6 @@ defmodule Krasukha.LendingRoutines do
     # %{message: "Loan order placed.", orderID: 136543484, success: 1}
   end
 
+  defp float_to_binary(nil), do: nil
   defp float_to_binary(float), do: :erlang.float_to_binary(float, [{:decimals, 8}])
 end

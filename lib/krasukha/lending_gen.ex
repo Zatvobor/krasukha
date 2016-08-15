@@ -74,8 +74,8 @@ defmodule Krasukha.LendingGen do
 
   @doc false
   def handle_call({:update_loan_orders, [every: seconds]}, _from, state) do
-    fetcher = spawn(__MODULE__, :loan_offers_fetcher, [self, seconds * 1000])
-    {:reply, :ok, Map.put(state, :fetcher, fetcher)}
+    pid = spawn(__MODULE__, :loan_offers_fetcher, [self, seconds * 1000])
+    {:reply, :ok, Map.put(state, :fetcher, pid)}
   end
 
   @doc false
@@ -85,20 +85,20 @@ defmodule Krasukha.LendingGen do
   end
 
   @doc false
-  def loan_offers_fetcher(server, timeout) when is_pid(server) do
+  def loan_offers_fetcher(server, timeout) do
     ref = Process.monitor(server)
+    Process.flag(:trap_exit, true)
     loan_offers_fetcher(ref, server, timeout)
     :true = Process.demonitor(ref)
   end
 
-  def loan_offers_fetcher(ref, server, timeout) when is_reference(ref) do
-    Process.flag(:trap_exit, true)
+  def loan_offers_fetcher(ref, server, timeout) do
+    GenServer.call(server, :fetch_loan_orders)
     receive do
-      {:DOWN, ^ref, _, _, _}   -> :ok
+      {:DOWN, ^ref, _, _, _}    -> :ok
       {:EXIT, ^server, :normal} -> :ok
     after
       timeout ->
-        :ok = GenServer.call(server, :fetch_loan_orders)
         loan_offers_fetcher(ref, server, timeout)
     end
   end
