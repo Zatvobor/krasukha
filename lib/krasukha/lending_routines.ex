@@ -14,7 +14,7 @@ defmodule Krasukha.LendingRoutines do
   @doc false
   def start(agent, strategy, %{currency: currency} = params) do
     # initial state starts w/ default params
-    state = %{fulfill_immediately: false, fetch_loan_orders: false, sleep_time_inactive: 60, gap_top_position: 10}
+    state = %{fulfill_immediately: false, fetch_loan_orders: false, sleep_time_inactive: 60, gap_top_position: 10, duration: 2, auto_renew: 0}
       |> Map.merge(params)
       |> Map.merge(%{currency_lending: Naming.process_name(currency, :lending)})
       |> Map.merge(%{agent: agent})
@@ -65,8 +65,8 @@ defmodule Krasukha.LendingRoutines do
   end
 
   @doc false
-  def create_loan_offer(rate, amount, %{agent: agent, currency: currency}) do
-    params = [currency: currency, lendingRate: rate, amount: amount, duration: 2, autoRenew: 0]
+  def create_loan_offer(rate, amount, %{agent: agent, currency: currency, duration: duration, auto_renew: auto_renew}) do
+    params = [currency: currency, lendingRate: rate, amount: amount, duration: duration, autoRenew: auto_renew]
     {:ok, 200, _} = PrivateAPI.create_loan_offer(agent, params)
     # %{message: "Loan order placed.", orderID: 136543484, success: 1}
   end
