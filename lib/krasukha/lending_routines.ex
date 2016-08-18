@@ -14,7 +14,9 @@ defmodule Krasukha.LendingRoutines do
   @doc false
   def start(agent, strategy, %{currency: currency} = params) do
     # initial state starts w/ default params
-    state = %{fulfill_immediately: false, fetch_loan_orders: false, sleep_time_inactive: 60, gap_top_position: 10, duration: 2, auto_renew: 0}
+    state = %{duration: 2, auto_renew: 0}
+      |> Map.merge(%{fetch_loan_orders: false, gap_top_position: 10})
+      |> Map.merge(%{fulfill_immediately: false, sleep_time_inactive: 60, sleep_time_inactive_seed: 1})
       |> Map.merge(params)
       |> Map.merge(%{currency_lending: Naming.process_name(currency, :lending)})
       |> Map.merge(%{agent: agent})
@@ -40,14 +42,19 @@ defmodule Krasukha.LendingRoutines do
   end
 
   @doc false
-  def loop(strategy, %{sleep_time_inactive: sleep_time_inactive} = params) do
+  def loop(strategy, params) do
     receive do
       {:EXIT, _, :normal} -> :ok
     after
-      sleep_time_inactive * 1000 ->
+      sleep_time_timeout(params) ->
         apply(__MODULE__, strategy, [params])
         loop(strategy, params)
     end
+  end
+
+  @doc false
+  def sleep_time_timeout(%{sleep_time_inactive: sleep_time_inactive, sleep_time_inactive_seed: sleep_time_inactive_seed}) do
+    :rand.uniform(sleep_time_inactive_seed) + (sleep_time_inactive * 1000) # in minutes
   end
 
   @doc false
