@@ -12,16 +12,25 @@ defmodule Krasukha.LendingRoutines do
   end
 
   @doc false
-  def start(agent, strategy, %{currency: currency} = params) do
-    # initial state starts w/ default params
-    state = %{duration: 2, auto_renew: 0}
+  def start(agent, strategy, params) do
+    state = init(agent, params)
+    spawn(__MODULE__, :start_routine, [strategy, state])
+  end
+
+  @doc false
+  def default_params() do
+    %{}
+      |> Map.merge(%{duration: 2, auto_renew: 0})
       |> Map.merge(%{fetch_loan_orders: false, gap_top_position: 10})
       |> Map.merge(%{fulfill_immediately: false, sleep_time_inactive: 60, sleep_time_inactive_seed: 1})
+  end
+
+  @doc false
+  def init(agent, %{currency: currency} = params) do
+    default_params()
       |> Map.merge(params)
       |> Map.merge(%{currency_lending: Naming.process_name(currency, :lending)})
       |> Map.merge(%{agent: agent})
-
-    spawn(__MODULE__, :start_routine, [strategy, state])
   end
 
   @doc false
