@@ -9,16 +9,17 @@ defmodule Krasukha.LendingGen do
 
 
   @doc false
-  def start_link(currency) when is_binary(currency) do
+  def start_link(currency, initial_state \\ %{}) when is_binary(currency) do
     options = [name: Naming.process_name(currency, :lending)]
-    GenServer.start_link(__MODULE__, [currency], options)
+    GenServer.start_link(__MODULE__, [currency, initial_state], options)
   end
 
   @doc false
-  def init([currency]) do
-    state = %{}
+  def init([currency, initial_state]) do
+    state = initial_state
       |> Map.merge(%{currency: currency})
-      |> Map.merge(__create_loan_orders_tables(currency))
+    state = if(initial_state[:orders_tids], do: %{orders_tids: initial_state.orders_tids}, else: __create_loan_orders_tables(currency))
+      |> Map.merge(state)
 
     {:ok, state}
   end

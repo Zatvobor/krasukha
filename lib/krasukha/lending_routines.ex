@@ -67,11 +67,37 @@ defmodule Krasukha.LendingRoutines do
   end
 
   @doc false
-  def find_offer_object(%{gap_top_position: gap_top_position, currency_lending: currency_lending, fetch_loan_orders: fetch_loan_orders}) do
+  def find_offer_object(%{gap_top_position: gap_top_position} = params) do
+    fetch_loan_orders(params)
+    offers_tid = offers_tid(params)
+    lookup(offers_tid, :next, gap_top_position, :ets.first(offers_tid))
+  end
+
+  @doc false
+  def find_offer_object(%{gap_bottom_position: gap_bottom_position} = params) do
+    fetch_loan_orders(params)
+    offers_tid = offers_tid(params)
+    lookup(offers_tid, :prev, gap_bottom_position, :ets.last(offers_tid))
+  end
+
+  defp lookup(tid, direction, position, key, i \\ 1) do
+    case i do
+      ^position ->
+        :ets.lookup(tid, key)
+          |> List.first
+      _ ->
+        next = apply(:ets, direction, [tid, key])
+        step = if(next == :"$end_of_table", do: key, else: next)
+        lookup(tid, direction, position, step, i + 1)
+    end
+  end
+
+  defp fetch_loan_orders(%{fetch_loan_orders: fetch_loan_orders, currency_lending: currency_lending}) do
     if(fetch_loan_orders, do: GenServer.call(currency_lending, :fetch_loan_orders))
-    offers_tid = GenServer.call(currency_lending, :offers_tid)
-    [object] = :ets.slot(offers_tid, gap_top_position)
-    object
+  end
+
+  defp offers_tid(%{currency_lending: currency_lending}) do
+    GenServer.call(currency_lending, :offers_tid)
   end
 
   @doc false
