@@ -93,6 +93,11 @@ defmodule Krasukha.SecretAgent do
     end)
   end
 
+  @doc false
+  def exit_routines(agent, reason \\ :normal) do
+    Enum.map(routines(agent), fn(pid) -> Process.exit(pid, reason) end)
+  end
+
 
   defp map_nested_values(payload, fun) do
     Enum.map(payload, fn({k,v}) -> {k, Enum.map(v, fun)} end)

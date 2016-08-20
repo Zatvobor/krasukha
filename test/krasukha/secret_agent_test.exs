@@ -46,6 +46,12 @@ defmodule Krasukha.SecretAgentTest do
     assert routines(pid) == [1,2]
   end
 
+  test "exit_routines/2", %{agent: pid} do
+    routine = spawn(fn -> :ok end)
+    assert :ok = update_routines(pid, [routine])
+    assert [true] = exit_routines(pid)
+  end
+
   @tag :skip # @tag [external: true]
   test "fetch_available_account_balance/2"
 
