@@ -4,7 +4,7 @@ defmodule Krasukha.SecretAgentTest do
   import Krasukha.SecretAgent
 
   setup do
-    {:ok, pid} = start_link(%{key: "key", secret: "secret", all: [], active_loans: [], open_loan_offers: []})
+    {:ok, pid} = start_link("key", "secret")
     [agent: pid]
   end
 
@@ -30,6 +30,20 @@ defmodule Krasukha.SecretAgentTest do
 
   test "open_loan_offers/1", %{agent: pid} do
     assert account_balance(pid, :open_loan_offers) == []
+  end
+
+  test "routines/1", %{agent: pid} do
+    assert routines(pid) == []
+  end
+
+  test "put_routine/2", %{agent: pid} do
+    assert :ok = put_routine(pid, self())
+    assert routines(pid) == [self()]
+  end
+
+  test "update_routines/2", %{agent: pid} do
+    assert :ok = update_routines(pid, [1,2])
+    assert routines(pid) == [1,2]
   end
 
   @tag :skip # @tag [external: true]

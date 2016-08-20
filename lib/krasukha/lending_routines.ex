@@ -14,7 +14,9 @@ defmodule Krasukha.LendingRoutines do
   @doc false
   def start(agent, strategy, params) do
     state = init(agent, params)
-    spawn(__MODULE__, :start_routine, [strategy, state])
+    pid = spawn(__MODULE__, :start_routine, [strategy, state])
+    :ok = SecretAgent.put_routine(agent, pid)
+    pid
   end
 
   @doc false

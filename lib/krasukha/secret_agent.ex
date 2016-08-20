@@ -9,7 +9,9 @@ defmodule Krasukha.SecretAgent do
   def start_link(key, secret), do: start_link(%{key: key, secret: secret})
 
   @doc false
-  def start_link(%{} = state) do
+  def start_link(%{} = opts) do
+    state = %{all: [], active_loans: [], open_loan_offers: [], routines: []}
+      |> Map.merge(opts)
     Agent.start_link(fn -> state end)
   end
 
@@ -74,6 +76,21 @@ defmodule Krasukha.SecretAgent do
       %{record | rate: rate, amount: amount}
     end)
     :ok = Agent.update(agent, fn(state) -> Map.put(state, :open_loan_offers, payload) end)
+  end
+
+  @doc false
+  def routines(agent), do: Agent.get(agent, fn(%{routines: r}) -> r end)
+
+  @doc false
+  def update_routines(agent, routines) do
+    Agent.update(agent, fn(state) -> Map.put(state, :routines, routines) end)
+  end
+
+  @doc false
+  def put_routine(agent, pid) when is_pid(pid) do
+    Agent.update(agent, fn(%{routines: r} = state) ->
+      Map.put(state, :routines, [pid | r])
+    end)
   end
 
 
