@@ -42,7 +42,8 @@ defmodule Krasukha do
 
   @doc false
   def start_market(currency_pair) do
-    spec = worker(MarketGen, [currency_pair], [id: Naming.process_name(currency_pair, :market), restart: :transient])
+    id = Naming.process_name(currency_pair, :market)
+    spec = worker(MarketGen, [currency_pair], [id: id, restart: :transient])
     Supervisor.start_child(Krasukha.Supervisor, spec)
   end
 
@@ -54,7 +55,8 @@ defmodule Krasukha do
 
   @doc false
   def start_lending(currency) do
-    spec = worker(LendingGen, [currency], [id: Naming.process_name(currency, :lending), restart: :transient])
+    id = Naming.process_name(currency, :lending)
+    spec = worker(LendingGen, [currency], [id: id, restart: :transient])
     Supervisor.start_child(Krasukha.Supervisor, spec)
   end
 
@@ -67,13 +69,15 @@ defmodule Krasukha do
 
   @doc false
   def start_lending_routine(agent, strategy, params) do
-    spec = worker(LendingRoutines, [agent, strategy, params], [id: :erlang.unique_integer([:monotonic]), restart: :transient])
+    id = make_id()
+    spec = worker(LendingRoutines, [agent, strategy, params], [id: id, restart: :transient])
     Supervisor.start_child(Krasukha.LendingSup, spec)
   end
 
   @doc false
   def start_secret_agent(key, secret) do
-    spec = worker(SecretAgent, [key, secret], [id: :erlang.unique_integer([:monotonic]), restart: :permanent])
+    id = make_id()
+    spec = worker(SecretAgent, [key, secret], [id: id, restart: :permanent])
     Supervisor.start_child(Krasukha.Supervisor, spec)
   end
 
@@ -82,4 +86,6 @@ defmodule Krasukha do
     responses = Enum.map(initial_requests, fn(request) -> GenServer.call(pid, request) end)
     {:ok, pid, responses}
   end
+
+  defp make_id(), do: :erlang.unique_integer([:monotonic])
 end
