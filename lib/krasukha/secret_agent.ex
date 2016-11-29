@@ -25,16 +25,16 @@ defmodule Krasukha.SecretAgent do
   def key_and_secret(agent), do: Agent.get(agent, fn(%{key: k, secret: s}) -> {k,s} end)
 
   @doc false
-  def account_balance(agent, account \\ :all), do: Agent.get(agent, fn(%{^account => a}) -> a end)
-
-  @doc false
-  def account_balance!(agent, account \\ :all) do
+  def account_balance!(agent, account \\ :exchange) do
     :ok = fetch_available_account_balance(agent, account)
     account_balance(agent, account)
   end
 
   @doc false
-  def fetch_available_account_balance(agent, account \\ :all) do
+  def account_balance(agent, account \\ :exchange), do: Agent.get(agent, fn(%{^account => a}) -> a end)
+
+  @doc false
+  def fetch_available_account_balance(agent, account) when account in [:lending, :exchange, :margin] do
     {:ok, 200, payload} = PrivateAPI.return_available_account_balances(agent, [account: account])
     payload = Enum.map(payload[account], fn({k,v}) -> {k, to_float(v)} end)
     :ok = Agent.update(agent, fn(state) -> Map.put(state, account, payload) end)

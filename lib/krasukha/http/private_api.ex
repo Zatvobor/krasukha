@@ -3,6 +3,10 @@ defmodule Krasukha.HTTP.PrivateAPI do
 
   alias Krasukha.{HTTP}
 
+  @typedoc "Returns your balances sorted by account"
+  @type account :: :all | :lending | :exchange | :margin
+
+
   @doc false
   def uri, do: %URI{ HTTP.uri | path: "/tradingApi" }
 
