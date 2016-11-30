@@ -89,9 +89,9 @@ defmodule Krasukha.SecretAgent do
   end
 
   @doc false
-  def put_routine(agent, pid) when is_pid(pid) do
+  def put_routine(agent, term) do
     Agent.update(agent, fn(%{routines: r} = state) ->
-      Map.put(state, :routines, [pid | r])
+      Map.put(state, :routines, [term | r])
     end)
   end
 

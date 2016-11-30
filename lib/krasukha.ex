@@ -18,8 +18,8 @@ defmodule Krasukha do
       ),
       supervisor(
         Supervisor,
-        [[], [strategy: :one_for_one, name: Krasukha.Lending.Supervisor]],
-        [id: Krasukha.Lending.Supervisor, restart: :permanent]
+        [[], [strategy: :one_for_one, name: Krasukha.LendingRoutines.Supervisor]],
+        [id: Krasukha.LendingRoutines.Supervisor, restart: :permanent]
       )
     ]
     opts = [strategy: :one_for_one, name: Krasukha.Supervisor]
@@ -76,7 +76,9 @@ defmodule Krasukha do
   def start_lending_routine(agent, strategy, params) do
     id = make_id()
     spec = worker(LendingRoutines, [agent, strategy, params], [id: id, restart: :transient])
-    Supervisor.start_child(Krasukha.Lending.Supervisor, spec)
+    state = Supervisor.start_child(Krasukha.LendingRoutines.Supervisor, spec)
+    with {:ok, _pid} <- state, do: SecretAgent.put_routine(agent, id)
+    state
   end
 
   @doc false

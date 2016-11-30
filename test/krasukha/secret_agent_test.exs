@@ -46,8 +46,8 @@ defmodule Krasukha.SecretAgentTest do
   end
 
   test "put_routine/2", %{agent: pid} do
-    assert :ok = put_routine(pid, self())
-    assert routines(pid) == [self()]
+    assert :ok = put_routine(pid, 123)
+    assert routines(pid) == [123]
   end
 
   test "update_routines/2", %{agent: pid} do
