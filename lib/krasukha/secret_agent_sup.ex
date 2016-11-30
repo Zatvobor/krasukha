@@ -4,7 +4,7 @@ defmodule Krasukha.SecretAgent.Supervisor do
 
   @doc false
   def to_pid_from_identifier(term) do
-    result = for {^term, pid, :worker, [Krasukha.SecretAgent]} <- Supervisor.which_children(__MODULE__), do: pid
+    result = for {^term, pid, :worker, [_]} <- Supervisor.which_children(__MODULE__), do: pid
     List.first(result)
   end
 
