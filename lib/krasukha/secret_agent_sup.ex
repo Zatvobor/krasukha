@@ -9,6 +9,39 @@ defmodule Krasukha.SecretAgent.Supervisor do
   end
 
   @doc false
+  def terminate_lending_routines(agent) when is_pid(agent) do
+    Krasukha.SecretAgent.routines(agent) |> terminate_lending_routines()
+  end
+  def terminate_lending_routines(ids) when is_list(ids) do
+    for id <- ids, do: Krasukha.LendingRoutines.Supervisor.terminate_child(id)
+  end
+  def terminate_lending_routines(term) do
+    term |> to_pid_from_identifier() |> terminate_lending_routines()
+  end
+
+  @doc false
+  def restart_lending_routines(agent) when is_pid(agent) do
+    Krasukha.SecretAgent.routines(agent) |> restart_lending_routines()
+  end
+  def restart_lending_routines(ids) when is_list(ids) do
+    for id <- ids, do: Krasukha.LendingRoutines.Supervisor.restart_child(id)
+  end
+  def restart_lending_routines(term) do
+    term |> to_pid_from_identifier() |> restart_lending_routines()
+  end
+
+  @doc false
+  def delete_lending_routines(agent) when is_pid(agent) do
+    Krasukha.SecretAgent.routines(agent) |> delete_lending_routines()
+  end
+  def delete_lending_routines(ids) when is_list(ids) do
+    for id <- ids, do: Krasukha.LendingRoutines.Supervisor.delete_child(id)
+  end
+  def delete_lending_routines(term) do
+    term |> to_pid_from_identifier() |> delete_lending_routines()
+  end
+
+  @doc false
   def which_children, do: Supervisor.which_children(__MODULE__)
   @doc false
   def count_children, do: Supervisor.count_children(__MODULE__)

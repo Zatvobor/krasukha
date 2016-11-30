@@ -8,6 +8,21 @@ defmodule Krasukha.LendingRoutines.Supervisor do
   end
 
   @doc false
+  def terminate_children do
+    for {id, _, :worker, [_]} <- which_children(), do: terminate_child(id)
+  end
+
+  @doc false
+  def restart_children do
+    for {id, _, :worker, [_]} <- which_children(), do: restart_child(id)
+  end
+
+  @doc false
+  def delete_children do
+    for {id, _, :worker, [_]} <- which_children(), do: delete_child(id)
+  end
+
+  @doc false
   def which_children, do: Supervisor.which_children(__MODULE__)
   @doc false
   def count_children, do: Supervisor.count_children(__MODULE__)
