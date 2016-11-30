@@ -7,6 +7,8 @@ defmodule Krasukha.SecretAgent do
 
   @doc false
   def start_link(key, secret), do: start_link(%{key: key, secret: secret})
+  @doc false
+  def start_link(key, secret, identifier), do: start_link(%{key: key, secret: secret, identifier: identifier})
 
   @doc false
   def start_link(%{} = opts) do
@@ -16,13 +18,13 @@ defmodule Krasukha.SecretAgent do
   end
 
   @doc false
-  def key(agent), do: Agent.get(agent, fn(%{key: k}) -> k end)
-
+  def key(agent), do: fetch(agent, :key)
   @doc false
-  def secret(agent), do: Agent.get(agent, fn(%{secret: s}) -> s end)
-
+  def secret(agent), do: fetch(agent, :secret)
   @doc false
-  def key_and_secret(agent), do: Agent.get(agent, fn(%{key: k, secret: s}) -> {k,s} end)
+  def identifier(agent), do: fetch(agent, :identifier)
+  @doc false
+  def key_and_secret(agent), do: {fetch(agent, :key), fetch(agent, :secret)}
 
   @doc false
   def account_balance!(agent, account \\ :exchange) do
@@ -103,4 +105,6 @@ defmodule Krasukha.SecretAgent do
     Enum.map(payload, fn({k,v}) -> {k, Enum.map(v, fun)} end)
       |> Map.new
   end
+
+  defp fetch(agent, field), do: Agent.get(agent, fn(%{^field => k}) -> k end)
 end

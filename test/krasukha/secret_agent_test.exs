@@ -3,6 +3,15 @@ defmodule Krasukha.SecretAgentTest do
 
   import Krasukha.SecretAgent
 
+  describe "agent w/ identifier" do
+    test "start_link/3" do
+      {:ok, pid} = start_link("key", "secret", "identifier")
+      assert key(pid) == "key"
+      assert secret(pid) == "secret"
+      assert identifier(pid) == "identifier"
+    end
+  end
+
   setup do
     {:ok, pid} = start_link("key", "secret")
     [agent: pid]

@@ -13,8 +13,13 @@ defmodule Krasukha do
     children = [
       supervisor(
         Supervisor,
-        [[], [strategy: :one_for_one, name: Krasukha.LendingSup]],
-        [id: Krasukha.LendingSup, restart: :permanent]
+        [[], [strategy: :one_for_one, name: Krasukha.SecretAgent.Supervisor]],
+        [id: Krasukha.SecretAgent.Supervisor, restart: :permanent]
+      ),
+      supervisor(
+        Supervisor,
+        [[], [strategy: :one_for_one, name: Krasukha.Lending.Supervisor]],
+        [id: Krasukha.Lending.Supervisor, restart: :permanent]
       )
     ]
     opts = [strategy: :one_for_one, name: Krasukha.Supervisor]
@@ -71,14 +76,14 @@ defmodule Krasukha do
   def start_lending_routine(agent, strategy, params) do
     id = make_id()
     spec = worker(LendingRoutines, [agent, strategy, params], [id: id, restart: :transient])
-    Supervisor.start_child(Krasukha.LendingSup, spec)
+    Supervisor.start_child(Krasukha.Lending.Supervisor, spec)
   end
 
   @doc false
   def start_secret_agent(key, secret) do
     id = make_id()
-    spec = worker(SecretAgent, [key, secret], [id: id, restart: :permanent])
-    Supervisor.start_child(Krasukha.Supervisor, spec)
+    spec = worker(SecretAgent, [key, secret, id], [id: id, restart: :permanent])
+    Supervisor.start_child(Krasukha.SecretAgent.Supervisor, spec)
   end
 
 
