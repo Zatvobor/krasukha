@@ -9,7 +9,6 @@ defmodule Krasukha.SecretAgent do
   def start_link(key, secret), do: start_link(%{key: key, secret: secret})
   @doc false
   def start_link(key, secret, identifier), do: start_link(%{key: key, secret: secret, identifier: identifier})
-
   @doc false
   def start_link(%{} = opts) do
     state = %{all: [], active_loans: [], open_loan_offers: [], routines: []}
@@ -33,17 +32,18 @@ defmodule Krasukha.SecretAgent do
   end
 
   @doc false
-  def account_balance(agent, account \\ :exchange), do: Agent.get(agent, fn(%{^account => a}) -> a end)
+  def account_balance(agent, account \\ :exchange), do: Agent.get(to_pid(agent), fn(%{^account => a}) -> a end)
 
   @doc false
-  def fetch_available_account_balance(agent, account) when account in [:lending, :exchange, :margin] do
+  def fetch_available_account_balance(agent, account) when is_pid(agent) and account in [:lending, :exchange, :margin] do
     {:ok, 200, payload} = PrivateAPI.return_available_account_balances(agent, [account: account])
     payload = Enum.map(payload[account], fn({k,v}) -> {k, to_float(v)} end)
     :ok = Agent.update(agent, fn(state) -> Map.put(state, account, payload) end)
   end
+  def fetch_available_account_balance(agent, account), do: fetch_available_account_balance(to_pid(agent), account)
 
   @doc false
-  def active_loans(agent), do: Agent.get(agent, fn(%{active_loans: l}) -> l end)
+  def active_loans(agent), do: Agent.get(to_pid(agent), fn(%{active_loans: l}) -> l end)
 
   @doc false
   def active_loans!(agent) do
@@ -52,7 +52,7 @@ defmodule Krasukha.SecretAgent do
   end
 
   @doc false
-  def fetch_active_loans(agent) do
+  def fetch_active_loans(agent) when is_pid(agent) do
     {:ok, 200, payload} = PrivateAPI.return_active_loans(agent)
     payload = map_nested_values(payload, fn(record) ->
       {rate, amount, fees} = to_tuple_with_floats(record)
@@ -60,9 +60,10 @@ defmodule Krasukha.SecretAgent do
     end)
     :ok = Agent.update(agent, fn(state) -> Map.put(state, :active_loans, payload) end)
   end
+  def fetch_active_loans(agent), do: fetch_active_loans(to_pid(agent))
 
   @doc false
-  def open_loan_offers(agent), do: Agent.get(agent, fn(%{open_loan_offers: l}) -> l end)
+  def open_loan_offers(agent), do: Agent.get(to_pid(agent), fn(%{open_loan_offers: l}) -> l end)
 
   @doc false
   def open_loan_offers!(agent) do
@@ -71,7 +72,7 @@ defmodule Krasukha.SecretAgent do
   end
 
   @doc false
-  def fetch_open_loan_offers(agent) do
+  def fetch_open_loan_offers(agent) when is_pid(agent) do
     {:ok, 200, payload} = PrivateAPI.return_open_loan_offers(agent)
     payload = map_nested_values(payload, fn(record) ->
       {rate, amount} = to_tuple_with_floats(record)
@@ -79,26 +80,26 @@ defmodule Krasukha.SecretAgent do
     end)
     :ok = Agent.update(agent, fn(state) -> Map.put(state, :open_loan_offers, payload) end)
   end
+  def fetch_open_loan_offers(agent), do: fetch_open_loan_offers(to_pid(agent))
 
   @doc false
-  def routines(agent), do: Agent.get(agent, fn(%{routines: r}) -> r end)
+  def routines(agent), do: Agent.get(to_pid(agent), fn(%{routines: r}) -> r end)
 
   @doc false
   def update_routines(agent, routines) do
-    Agent.update(agent, fn(state) -> Map.put(state, :routines, routines) end)
+    Agent.update(to_pid(agent), fn(state) -> Map.put(state, :routines, routines) end)
   end
 
   @doc false
   def put_routine(agent, term) do
-    Agent.update(agent, fn(%{routines: r} = state) ->
+    Agent.update(to_pid(agent), fn(%{routines: r} = state) ->
       Map.put(state, :routines, [term | r])
     end)
   end
 
   @doc false
-  def exit_routines(agent, reason \\ :normal) do
-    Enum.map(routines(agent), fn(pid) -> Process.exit(pid, reason) end)
-  end
+  def to_pid(agent) when is_pid(agent), do: agent
+  def to_pid(agent), do: Krasukha.SecretAgent.Supervisor.to_pid_from_identifier(agent)
 
 
   defp map_nested_values(payload, fun) do
@@ -106,5 +107,5 @@ defmodule Krasukha.SecretAgent do
       |> Map.new
   end
 
-  defp fetch(agent, field), do: Agent.get(agent, fn(%{^field => k}) -> k end)
+  defp fetch(agent, field), do: Agent.get(to_pid(agent), fn(%{^field => k}) -> k end)
 end

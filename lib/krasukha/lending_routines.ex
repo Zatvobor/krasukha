@@ -102,20 +102,17 @@ defmodule Krasukha.LendingRoutines do
 
   @doc false
   def get_account_balance(%{agent: agent, currency: currency}) do
-    SecretAgent.account_balance!(to_pid(agent), :lending)[String.to_atom(currency)]
+    SecretAgent.account_balance!(agent, :lending)[String.to_atom(currency)]
       |> float_to_binary()
   end
 
   @doc false
   def create_loan_offer(rate, amount, %{agent: agent, currency: currency, duration: duration, auto_renew: auto_renew}) do
     params = [currency: currency, lendingRate: rate, amount: amount, duration: duration, autoRenew: auto_renew]
-    {:ok, 200, _} = PrivateAPI.create_loan_offer(to_pid(agent), params)
+    {:ok, 200, _} = PrivateAPI.create_loan_offer(agent, params)
     # %{message: "Loan order placed.", orderID: 136543484, success: 1}
   end
 
   defp float_to_binary(nil), do: nil
   defp float_to_binary(float), do: :erlang.float_to_binary(float, [{:decimals, 8}])
-
-  defp to_pid(term) when is_pid(term), do: term
-  defp to_pid(term), do: SecretAgent.Supervisor.to_pid_from_identifier(term)
 end

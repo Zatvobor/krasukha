@@ -1,6 +1,8 @@
 defmodule Krasukha.SecretAgent.Supervisor do
   @moduledoc false
 
+  alias Krasukha.{SecretAgent, LendingRoutines}
+
 
   @doc false
   def to_pid_from_identifier(term) do
@@ -9,36 +11,44 @@ defmodule Krasukha.SecretAgent.Supervisor do
   end
 
   @doc false
-  def terminate_lending_routines(agent) when is_pid(agent) do
-    Krasukha.SecretAgent.routines(agent) |> terminate_lending_routines()
+  def shutdown_routines(term, reason \\ :normal) do
+    SecretAgent.routines(term) |> Enum.map(fn(pid) -> Process.exit(pid, reason) end)
   end
+
+  @doc false
   def terminate_lending_routines(ids) when is_list(ids) do
-    for id <- ids, do: Krasukha.LendingRoutines.Supervisor.terminate_child(id)
+    for id <- ids, do: LendingRoutines.Supervisor.terminate_child(id)
   end
   def terminate_lending_routines(term) do
-    term |> to_pid_from_identifier() |> terminate_lending_routines()
+    SecretAgent.routines(term) |> terminate_lending_routines()
   end
 
   @doc false
-  def restart_lending_routines(agent) when is_pid(agent) do
-    Krasukha.SecretAgent.routines(agent) |> restart_lending_routines()
-  end
   def restart_lending_routines(ids) when is_list(ids) do
-    for id <- ids, do: Krasukha.LendingRoutines.Supervisor.restart_child(id)
+    for id <- ids, do: LendingRoutines.Supervisor.restart_child(id)
   end
   def restart_lending_routines(term) do
-    term |> to_pid_from_identifier() |> restart_lending_routines()
+    SecretAgent.routines(term) |> restart_lending_routines()
   end
 
   @doc false
-  def delete_lending_routines(agent) when is_pid(agent) do
-    Krasukha.SecretAgent.routines(agent) |> delete_lending_routines()
-  end
   def delete_lending_routines(ids) when is_list(ids) do
-    for id <- ids, do: Krasukha.LendingRoutines.Supervisor.delete_child(id)
+    for id <- ids, do: LendingRoutines.Supervisor.delete_child(id)
   end
   def delete_lending_routines(term) do
-    term |> to_pid_from_identifier() |> delete_lending_routines()
+    SecretAgent.routines(term) |> delete_lending_routines()
+  end
+
+  @doc false
+  def which_children(ids, currency) when is_list(ids) do
+    for id <- ids do
+      with {:ok, %{start: start}} <- get_childspec(id),
+           {_, :start_link, [_, _, %{currency: ^currency}]} <- start, do: id, else: nil
+    end
+    |> Enum.reject(&(is_nil(&1)))
+  end
+  def which_children(term, currency) do
+    SecretAgent.routines(term) |> which_children(currency)
   end
 
   @doc false
