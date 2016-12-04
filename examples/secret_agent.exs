@@ -4,8 +4,8 @@ alias Krasukha.{SecretAgent}
 
 lending_balance = SecretAgent.account_balance!(agent, :lending)
 # the same as following:
-:ok = SecretAgent.fetch_available_account_balance(agent, :lending)
-lending_balance = SecretAgent.account_balance(agent, :lending)
+:ok = SecretAgent.fetch_available_account_balance(agent, :exchange)
+lending_balance = SecretAgent.account_balance(agent, :exchange)
 
 
 active_loans = SecretAgent.active_loans!(agent)
