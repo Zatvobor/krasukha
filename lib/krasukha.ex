@@ -75,7 +75,8 @@ defmodule Krasukha do
   @doc false
   def start_lending_routine(agent, strategy, params) do
     id = make_id()
-    spec = worker(LendingRoutines, [agent, strategy, params], [id: id, restart: :transient])
+    identifier = SecretAgent.identifier(agent)
+    spec = worker(LendingRoutines, [identifier, strategy, params], [id: id, restart: :transient])
     state = Supervisor.start_child(Krasukha.LendingRoutines.Supervisor, spec)
     with {:ok, _pid} <- state, do: SecretAgent.put_routine(agent, id)
     state

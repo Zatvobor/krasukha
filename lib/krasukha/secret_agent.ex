@@ -6,9 +6,7 @@ defmodule Krasukha.SecretAgent do
 
 
   @doc false
-  def start_link(key, secret), do: start_link(%{key: key, secret: secret})
-  @doc false
-  def start_link(key, secret, identifier), do: start_link(%{key: key, secret: secret, identifier: identifier})
+  def start_link(key, secret, identifier \\ nil), do: start_link(%{key: key, secret: secret, identifier: identifier})
   @doc false
   def start_link(%{} = opts) do
     state = %{all: [], active_loans: [], open_loan_offers: [], routines: []}
