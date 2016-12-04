@@ -51,9 +51,9 @@ defmodule Krasukha.LendingGenTest do
   describe "loan_orders is fetching, using" do
     @tag :external
     test "fetch_loan_orders", %{server: pid} do
-      loan_offers_tid = GenServer.call(pid, :loan_offers_tid)
+      offers_tid = GenServer.call(pid, :offers_tid)
       assert :ok = GenServer.call(pid, :fetch_loan_orders)
-      assert :ets.info(loan_offers_tid, :size) > 1
+      assert :ets.info(offers_tid, :size) > 1
     end
 
     @payload %{
