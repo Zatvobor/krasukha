@@ -52,6 +52,11 @@ defmodule Krasukha.HTTP.PrivateAPI do
   end
 
   @doc false
+  def return_lending_history(agent, params \\ [start: :timestamp, end: :timestamp, limit: -1]) do
+    HTTP.post("returnLendingHistory", params, to_pid(agent), uri)
+  end
+
+  @doc false
   def toggle_auto_renew(agent, params \\ [orderNumber: -1]) do
     HTTP.post("toggleAutoRenew", params, to_pid(agent), uri)
   end
