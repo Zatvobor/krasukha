@@ -41,7 +41,8 @@ defmodule Krasukha.LendingGenTest do
       assert :ets.info(demands_tid, :name) == :btc_loan_demands
     end
     test "clean_loan_orders", %{server: pid} do
-      [offers_tid, demands_tid] = GenServer.call(pid, :orders_tids)
+      [offers_tid, demands_tid] = orders_tids = GenServer.call(pid, :orders_tids)
+      for tid <- orders_tids, do: assert(:ets.insert(tid, {:record}) == :true)
       assert :ok = GenServer.call(pid, :clean_loan_orders)
       assert :ets.info(offers_tid, :size) == 0
       assert :ets.info(demands_tid, :size) == 0

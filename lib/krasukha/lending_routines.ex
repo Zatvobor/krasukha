@@ -92,9 +92,12 @@ defmodule Krasukha.LendingRoutines do
     end
   end
 
-  defp fetch_loan_orders(%{fetch_loan_orders: fetch_loan_orders, currency_lending: currency_lending}) do
-    if(fetch_loan_orders, do: GenServer.call(currency_lending, :fetch_loan_orders))
+  defp fetch_loan_orders(%{fetch_loan_orders: true, currency_lending: currency_lending}) do
+    :ok = GenServer.call(currency_lending, :clean_loan_orders)
+    :ok = GenServer.call(currency_lending, :fetch_loan_orders)
+    :ok
   end
+  defp fetch_loan_orders(%{fetch_loan_orders: _, currency_lending: _}), do: :false
 
   defp offers_tid(%{currency_lending: currency_lending}) do
     GenServer.call(currency_lending, :offers_tid)

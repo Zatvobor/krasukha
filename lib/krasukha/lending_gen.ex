@@ -26,10 +26,15 @@ defmodule Krasukha.LendingGen do
 
   @doc false
   def __create_loan_orders_tables(currency \\ "untitled") do
-    opts = [:ordered_set, :protected, :named_table, {:read_concurrency, true}]
-    offers_tid  = :ets.new(Naming.to_name(currency, :loan_offers), opts)
-    demands_tid = :ets.new(Naming.to_name(currency, :loan_demands), opts)
+    offers_tid  = :ets.new(Naming.to_name(currency, :loan_offers), loan_orders_table_access)
+    demands_tid = :ets.new(Naming.to_name(currency, :loan_demands), loan_orders_table_access)
     %{orders_tids: %{offers_tid: offers_tid, demands_tid: demands_tid}}
+  end
+
+  @doc false
+  def loan_orders_table_access() do
+    access = if(Mix.env == :test, do: :public, else: :protected)
+    [:ordered_set, access, :named_table, {:read_concurrency, true}]
   end
 
   # Server (callbacks)
