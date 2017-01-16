@@ -53,7 +53,7 @@ defmodule Krasukha.LendingRoutines do
   @doc false
   def loop(strategy, params) do
     receive do
-      {:EXIT, _, :normal} -> :ok
+      {:EXIT, _, reason} when reason in [:normal, :shutdown] -> :ok
     after
       sleep_time_timeout(params) ->
         apply(__MODULE__, strategy, [params])
