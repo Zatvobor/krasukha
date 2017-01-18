@@ -6,7 +6,7 @@ defmodule Krasukha.LendingRoutinesTest do
 
   test "sleep_time_timeout/1" do
     timeout = LendingRoutines.sleep_time_timeout(%{sleep_time_inactive: 1, sleep_time_inactive_seed: 1})
-    assert timeout == 1001
+    assert timeout == 2000
   end
 
   describe "find_offer_object/1 in context of" do

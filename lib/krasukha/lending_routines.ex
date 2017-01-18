@@ -63,7 +63,7 @@ defmodule Krasukha.LendingRoutines do
 
   @doc false
   def sleep_time_timeout(%{sleep_time_inactive: sleep_time_inactive, sleep_time_inactive_seed: sleep_time_inactive_seed}) do
-    :rand.uniform(sleep_time_inactive_seed) + (sleep_time_inactive * 1000) # in minutes
+    (:rand.uniform(sleep_time_inactive_seed) * 1000) + (sleep_time_inactive * 1000) # getting timeout in milliseconds
   end
 
   @doc false
