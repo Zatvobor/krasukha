@@ -8,6 +8,8 @@ defmodule Krasukha.LendingRoutines.Supervisor do
   end
 
   @doc false
+  def get_childrenspec, do: for_each_children_call(&get_childspec/1)
+  @doc false
   def terminate_children, do: for_each_children_call(&terminate_child/1)
   @doc false
   def restart_children, do: for_each_children_call(&restart_child/1)

@@ -45,4 +45,11 @@ defmodule Krasukha.LendingRoutines.SupervisorTest do
     actual = delete_children()
     assert actual == [:ok, :ok]
   end
+
+  test "get_childrenspec/0", %{agent: agent} do
+    {:ok, _} = Krasukha.start_lending_routine(agent, :available_balance_to_gap_position, %{currency: "X"})
+    {:ok, _} = Krasukha.start_lending_routine(agent, :available_balance_to_gap_position, %{currency: "Y"})
+    actual = get_childrenspec()
+    assert [{:ok, _}, {:ok, _}] = actual
+  end
 end
