@@ -8,19 +8,11 @@ defmodule Krasukha.LendingRoutines.Supervisor do
   end
 
   @doc false
-  def terminate_children do
-    for {id, _, :worker, [_]} <- which_children(), do: terminate_child(id)
-  end
-
+  def terminate_children, do: for_each_children_call(&terminate_child/1)
   @doc false
-  def restart_children do
-    for {id, _, :worker, [_]} <- which_children(), do: restart_child(id)
-  end
-
+  def restart_children, do: for_each_children_call(&restart_child/1)
   @doc false
-  def delete_children do
-    for {id, _, :worker, [_]} <- which_children(), do: delete_child(id)
-  end
+  def delete_children, do: for_each_children_call(&delete_child/1)
 
   @doc false
   def which_children, do: Supervisor.which_children(__MODULE__)
@@ -34,4 +26,9 @@ defmodule Krasukha.LendingRoutines.Supervisor do
   def restart_child(id), do: Supervisor.restart_child(__MODULE__, id)
   @doc false
   def delete_child(id), do: Supervisor.delete_child(__MODULE__, id)
+
+
+  defp for_each_children_call(fun) do
+    for {id, _, :worker, [_]} <- which_children(), do: fun.(id)
+  end
 end
