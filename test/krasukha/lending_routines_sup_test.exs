@@ -2,12 +2,12 @@ defmodule Krasukha.LendingRoutines.SupervisorTest do
   use ExUnit.Case, async: true
 
   import Krasukha.LendingRoutines.Supervisor
-  alias Krasukha.{SecretAgent}
+  alias Krasukha.{SecretAgent, Supervisor}
 
   setup do
     {:ok, pid} = Krasukha.start_secret_agent("key", "secret")
-    Supervisor.restart_child(Krasukha.Supervisor, Krasukha.LendingRoutines.Supervisor)
-    on_exit fn -> Supervisor.terminate_child(Krasukha.Supervisor, Krasukha.LendingRoutines.Supervisor) end
+    Supervisor.restart_child(Krasukha.LendingRoutines.Supervisor)
+    on_exit fn -> Supervisor.terminate_child(Krasukha.LendingRoutines.Supervisor) end
     [agent: pid]
   end
 

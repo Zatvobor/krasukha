@@ -10,20 +10,7 @@ defmodule Krasukha do
 
   @doc false
   def start(:normal, _args \\ nil) do
-    children = [
-      supervisor(
-        Supervisor,
-        [[], [strategy: :one_for_one, name: Krasukha.SecretAgent.Supervisor]],
-        [id: Krasukha.SecretAgent.Supervisor, restart: :permanent]
-      ),
-      supervisor(
-        Supervisor,
-        [[], [strategy: :one_for_one, name: Krasukha.LendingRoutines.Supervisor]],
-        [id: Krasukha.LendingRoutines.Supervisor, restart: :permanent]
-      )
-    ]
-    opts = [strategy: :one_for_one, name: Krasukha.Supervisor]
-    Supervisor.start_link(children, opts)
+    Krasukha.Supervisor.start_link()
   end
 
   @doc false
