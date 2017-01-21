@@ -1,7 +1,7 @@
 defmodule Krasukha.LendingRoutines do
   @moduledoc false
 
-  alias Krasukha.{SecretAgent, Helpers.Naming, HTTP.PrivateAPI}
+  alias Krasukha.{SecretAgent, Helpers.Naming, Helpers.String, HTTP.PrivateAPI}
 
 
   @doc false
@@ -20,9 +20,16 @@ defmodule Krasukha.LendingRoutines do
   @doc false
   def default_params() do
     %{}
-      |> Map.merge(%{duration: 2, auto_renew: 0})
-      |> Map.merge(%{fetch_loan_orders: false, gap_top_position: 10})
-      |> Map.merge(%{fulfill_immediately: false, sleep_time_inactive: 60, sleep_time_inactive_seed: 1})
+      # known options for strategies like `available_balance_to_gap_position`
+      |> Map.merge(%{duration: 2, auto_renew: 0, gap_top_position: 10}) # gap_bottom_position
+      |> Map.merge(%{fetch_loan_orders: false})
+
+      # known options for strategy `cancel_open_loan_offers`
+      |> Map.merge(%{after_time_inactive: 14400}) # in seconds (4 hours)
+
+      # shared options
+      |> Map.merge(%{fulfill_immediately: false})
+      |> Map.merge(%{sleep_time_inactive: 60, sleep_time_inactive_seed: 1}) # in seconds
   end
 
   @doc false
@@ -32,6 +39,31 @@ defmodule Krasukha.LendingRoutines do
       |> Map.merge(%{currency_lending: Naming.process_name(currency, :lending)})
       |> Map.merge(%{agent: agent})
   end
+
+  @doc false
+  def cancel_open_loan_offers(%{agent: agent, currency: currency} = params) do
+    {:ok, 200, open_loan_offers} = PrivateAPI.return_open_loan_offers(agent)
+    open_loan_offers = open_loan_offers[String.to_atom(currency)]
+    for open_loan_offer <- filter_open_loan_offers(open_loan_offers, params) do
+      {:ok, 200, _} = PrivateAPI.cancel_loan_offer(agent, [orderNumber: open_loan_offer.id])
+      # %{success: 1, message: "Loan offer canceled."}
+    end
+  end
+
+  @doc false
+  def filter_open_loan_offers(open_loan_offers, %{after_time_inactive: after_time_inactive}) do
+    for open_loan_offer <- open_loan_offers do
+      created_at_unix_time = String.to_erl_datetime(open_loan_offer.date)
+        |> String.to_unix_time
+      current_unix_time = String.now_to_erl_datetime()
+        |> String.to_unix_time
+      if (current_unix_time - created_at_unix_time) >= after_time_inactive do
+        open_loan_offer
+      end
+    end
+    |> Enum.reject(&(is_nil(&1))) # compact
+  end
+  def filter_open_loan_offers(nil, _params), do: []
 
   @doc false
   def available_balance_to_gap_position(params) do

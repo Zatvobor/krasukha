@@ -9,6 +9,24 @@ defmodule Krasukha.LendingRoutinesTest do
     assert timeout == 2000
   end
 
+  describe "filter_open_loan_offers/2 in context of" do
+    setup do
+      open_loan_offers = [
+        %{date: "2017-01-20 10:39:35"}
+      ]
+      {:ok, [open_loan_offers: open_loan_offers]}
+    end
+
+    test "a", %{open_loan_offers: open_loan_offers} do
+      actual = LendingRoutines.filter_open_loan_offers(open_loan_offers, %{after_time_inactive: 10})
+      assert length(actual) == 1
+    end
+    test "b", %{open_loan_offers: open_loan_offers} do
+      actual = LendingRoutines.filter_open_loan_offers(open_loan_offers, %{after_time_inactive: 1484923660})
+      assert length(actual) == 0
+    end
+  end
+
   describe "find_offer_object/1 in context of" do
     setup do
       %{orders_tids: %{offers_tid: offers_tid}} = initial_state = LendingGen.__create_loan_orders_tables()
