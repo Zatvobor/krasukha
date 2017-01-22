@@ -51,6 +51,7 @@ defmodule Krasukha.LendingRoutines do
   end
 
   @doc false
+  def filter_open_loan_offers(nil, _params), do: []
   def filter_open_loan_offers(open_loan_offers, %{after_time_inactive: after_time_inactive}) do
     for open_loan_offer <- open_loan_offers do
       created_at_unix_time = String.to_erl_datetime(open_loan_offer.date)
@@ -63,7 +64,6 @@ defmodule Krasukha.LendingRoutines do
     end
     |> Enum.reject(&(is_nil(&1))) # compact
   end
-  def filter_open_loan_offers(nil, _params), do: []
 
   @doc false
   def available_balance_to_gap_position(params) do
