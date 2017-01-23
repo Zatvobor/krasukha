@@ -9,6 +9,11 @@ defmodule Krasukha.Helpers.StringTest do
     assert to_tuple_with_floats(["10.0", 20]) == {10.0, 20}
   end
 
+  test "float_to_binary/1" do
+    assert float_to_binary(0.10) == "0.10000000"
+    assert float_to_binary(0.00003575) == "0.00003575"
+  end
+
   test "to_erl_datetime/1" do
     assert to_erl_datetime("2017-01-20 10:39:35") == {{2017, 1, 20}, {10, 39, 35}}
   end

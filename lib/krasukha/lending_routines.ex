@@ -1,7 +1,7 @@
 defmodule Krasukha.LendingRoutines do
   @moduledoc false
 
-  alias Krasukha.{SecretAgent, Helpers.Naming, Helpers.String, HTTP.PrivateAPI}
+  alias Krasukha.{HTTP, Helpers.Naming, Helpers.Routine, Helpers.String}
 
 
   @doc false
@@ -14,22 +14,17 @@ defmodule Krasukha.LendingRoutines do
   @doc false
   def start(agent, strategy, params) do
     state = init(agent, params)
-    spawn(__MODULE__, :start_routine, [strategy, state])
+    spawn(Routine, :start_routine, [__MODULE__, strategy, state])
   end
 
   @doc false
   def default_params() do
-    %{}
+    Routine.default_params()
       # known options for strategies like `available_balance_to_gap_position`
       |> Map.merge(%{duration: 2, auto_renew: 0, gap_top_position: 10}) # gap_bottom_position
       |> Map.merge(%{fetch_loan_orders: false})
-
       # known options for strategy `cancel_open_loan_offers`
       |> Map.merge(%{after_time_inactive: 14400}) # in seconds (4 hours)
-
-      # shared options
-      |> Map.merge(%{fulfill_immediately: false})
-      |> Map.merge(%{sleep_time_inactive: 60, sleep_time_inactive_seed: 1}) # in seconds
   end
 
   @doc false
@@ -42,10 +37,10 @@ defmodule Krasukha.LendingRoutines do
 
   @doc false
   def cancel_open_loan_offers(%{agent: agent, currency: currency} = params) do
-    {:ok, 200, open_loan_offers} = PrivateAPI.return_open_loan_offers(agent)
+    {:ok, 200, open_loan_offers} = HTTP.PrivateAPI.return_open_loan_offers(agent)
     open_loan_offers = open_loan_offers[String.to_atom(currency)]
     for open_loan_offer <- filter_open_loan_offers(open_loan_offers, params) do
-      {:ok, 200, _} = PrivateAPI.cancel_loan_offer(agent, [orderNumber: open_loan_offer.id])
+      {:ok, 200, _} = HTTP.PrivateAPI.cancel_loan_offer(agent, [orderNumber: open_loan_offer.id])
       # %{success: 1, message: "Loan offer canceled."}
     end
   end
@@ -67,35 +62,12 @@ defmodule Krasukha.LendingRoutines do
 
   @doc false
   def available_balance_to_gap_position(params) do
-    balance = get_account_balance(params)
+    balance = Routine.get_account_balance(params, :lending)
     if is_binary(balance) do
       {rate, _, _, _} = find_offer_object(params)
-      rate = float_to_binary(rate)
+      rate = String.float_to_binary(rate)
       create_loan_offer(rate, balance, params)
     end
-  end
-
-  @doc false
-  def start_routine(strategy, %{fulfill_immediately: fulfill_immediately} = params) do
-    Process.flag(:trap_exit, true)
-    if(fulfill_immediately, do: apply(__MODULE__, strategy, [params]))
-    loop(strategy, params)
-  end
-
-  @doc false
-  def loop(strategy, params) do
-    receive do
-      {:EXIT, _, reason} when reason in [:normal, :shutdown] -> :ok
-    after
-      sleep_time_timeout(params) ->
-        apply(__MODULE__, strategy, [params])
-        loop(strategy, params)
-    end
-  end
-
-  @doc false
-  def sleep_time_timeout(%{sleep_time_inactive: sleep_time_inactive, sleep_time_inactive_seed: sleep_time_inactive_seed}) do
-    (:rand.uniform(sleep_time_inactive_seed) * 1000) + (sleep_time_inactive * 1000) # getting timeout in milliseconds
   end
 
   @doc false
@@ -136,18 +108,9 @@ defmodule Krasukha.LendingRoutines do
   end
 
   @doc false
-  def get_account_balance(%{agent: agent, currency: currency}) do
-    SecretAgent.account_balance!(agent, :lending)[String.to_atom(currency)]
-      |> float_to_binary()
-  end
-
-  @doc false
   def create_loan_offer(rate, amount, %{agent: agent, currency: currency, duration: duration, auto_renew: auto_renew}) do
     params = [currency: currency, lendingRate: rate, amount: amount, duration: duration, autoRenew: auto_renew]
-    {:ok, 200, _} = PrivateAPI.create_loan_offer(agent, params)
+    {:ok, 200, _} = HTTP.PrivateAPI.create_loan_offer(agent, params)
     # %{message: "Loan order placed.", orderID: 136543484, success: 1}
   end
-
-  defp float_to_binary(nil), do: nil
-  defp float_to_binary(float), do: :erlang.float_to_binary(float, [{:decimals, 8}])
 end

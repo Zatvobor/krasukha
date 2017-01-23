@@ -4,11 +4,6 @@ defmodule Krasukha.LendingRoutinesTest do
   alias Krasukha.{LendingGen, LendingRoutines}
 
 
-  test "sleep_time_timeout/1" do
-    timeout = LendingRoutines.sleep_time_timeout(%{sleep_time_inactive: 1, sleep_time_inactive_seed: 1})
-    assert timeout == 2000
-  end
-
   describe "filter_open_loan_offers/2 in context of" do
     setup do
       open_loan_offers = [

@@ -2,7 +2,7 @@ defmodule Krasukha.LendingRoutines.SupervisorTest do
   use ExUnit.Case, async: true
 
   import Krasukha.LendingRoutines.Supervisor
-  alias Krasukha.{SecretAgent, Supervisor}
+  alias Krasukha.{Supervisor}
 
   setup do
     {:ok, pid} = Krasukha.start_secret_agent("key", "secret")
@@ -11,17 +11,6 @@ defmodule Krasukha.LendingRoutines.SupervisorTest do
     [agent: pid]
   end
 
-
-  test "to_pid_from_identifier(:unknown)" do
-    actual = to_pid_from_identifier(:unknown)
-    assert actual == nil
-  end
-
-  test "to_pid_from_identifier/1", %{agent: agent} do
-    {:ok, pid} = Krasukha.start_lending_routine(agent, :available_balance_to_gap_position, %{currency: "X"})
-    actual = (SecretAgent.routines(agent) |> List.first |> to_pid_from_identifier())
-    assert actual == pid
-  end
 
   describe "child context" do
     setup %{agent: agent} do

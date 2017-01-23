@@ -1,6 +1,5 @@
 defmodule Krasukha.Helpers.String do
   @moduledoc false
-
   defdelegate to_atom(string), to: String
 
 
@@ -18,6 +17,10 @@ defmodule Krasukha.Helpers.String do
     ArgumentError -> String.to_integer(value)
   end
   def to_float(value), do: value
+
+  @doc false
+  def float_to_binary(nil), do: nil
+  def float_to_binary(float), do: :erlang.float_to_binary(float, [{:decimals, 8}])
 
   @doc false
   def to_erl_datetime(<<year::4-bytes, ?-, month::2-bytes, ?-, day::2-bytes, sep, hour::2-bytes, ?:, min::2-bytes, ?:, sec::2-bytes, rest::binary>>) when sep in [?\s, ?T] do

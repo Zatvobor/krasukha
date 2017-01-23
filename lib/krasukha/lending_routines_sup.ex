@@ -2,12 +2,6 @@ defmodule Krasukha.LendingRoutines.Supervisor do
   @moduledoc false
 
   @doc false
-  def to_pid_from_identifier(term) do
-    result = for {^term, pid, :worker, [_]} <- Supervisor.which_children(__MODULE__), do: pid
-    List.first(result)
-  end
-
-  @doc false
   def get_childrenspec, do: for_each_children_call(&get_childspec/1)
   @doc false
   def terminate_children, do: for_each_children_call(&terminate_child/1)
