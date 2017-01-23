@@ -5,7 +5,7 @@ defmodule Krasukha do
 
   import Supervisor.Spec, warn: false, only: [supervisor: 3, worker: 3]
 
-  alias Krasukha.{Helpers.Naming, SecretAgent, MarketsGen, MarketGen, LendingGen, LendingRoutines, WAMP}
+  alias Krasukha.{Helpers.Naming, SecretAgent, MarketsGen, MarketGen, LendingGen, WAMP}
 
 
   @doc false
@@ -61,10 +61,20 @@ defmodule Krasukha do
 
   @doc false
   def start_lending_routine(agent, strategy, params) do
+    start_routine(Krasukha.LendingRoutines, agent, strategy, params)
+  end
+
+  @doc false
+  def start_exchange_routine(agent, strategy, params) do
+    start_routine(Krasukha.ExchangeRoutines, agent, strategy, params)
+  end
+
+  @doc false
+  def start_routine(mod, agent, strategy, params) do
     id = make_id()
     identifier = SecretAgent.identifier(agent)
-    spec = worker(LendingRoutines, [identifier, strategy, params], [id: id, restart: :transient])
-    state = Supervisor.start_child(Krasukha.LendingRoutines.Supervisor, spec)
+    spec = worker(mod, [identifier, strategy, params], [id: id, restart: :transient])
+    state = Supervisor.start_child(Module.concat(mod, Supervisor), spec)
     with {:ok, _pid} <- state, do: SecretAgent.put_routine(agent, id)
     state
   end

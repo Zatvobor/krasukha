@@ -16,6 +16,11 @@ defmodule Krasukha.Supervisor do
         Supervisor,
         [[], [strategy: :one_for_one, name: Krasukha.LendingRoutines.Supervisor]],
         [id: Krasukha.LendingRoutines.Supervisor, restart: :permanent]
+      ),
+      supervisor(
+        Supervisor,
+        [[], [strategy: :one_for_one, name: Krasukha.ExchangeRoutines.Supervisor]],
+        [id: Krasukha.ExchangeRoutines.Supervisor, restart: :permanent]
       )
     ]
   end
