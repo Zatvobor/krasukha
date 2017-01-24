@@ -1,12 +1,12 @@
 defmodule Krasukha.WAMP do
   @moduledoc false
 
-  @credentials [realm: "realm1", timeout: 3000]
   @doc false
+  @credentials [realm: "realm1", timeout: 3000]
   def credentials, do: @credentials
 
-  @uri URI.parse("wss://api.poloniex.com")
   @doc false
+  @uri URI.parse("wss://api.poloniex.com")
   def uri, do: @uri
 
   @doc false

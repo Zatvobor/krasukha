@@ -1,8 +1,7 @@
+alias Krasukha.{LendingGen, LendingRoutines}
+
 defmodule Krasukha.LendingRoutinesTest do
   use ExUnit.Case, async: true
-
-  alias Krasukha.{LendingGen, LendingRoutines}
-
 
   describe "filter_open_loan_offers/2 in context of" do
     setup do

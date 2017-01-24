@@ -1,12 +1,9 @@
-defmodule Krasukha.MarketsGen do
-  @moduledoc false
+alias Krasukha.{HTTP, WAMP, Helpers}
 
+defmodule Krasukha.MarketsGen do
   use GenServer
 
-  alias Krasukha.{HTTP, WAMP, Helpers}
-
-  import Helpers.String, only: [to_atom: 1, to_float: 1]
-
+  @moduledoc false
 
   @doc false
   def start_link() do
@@ -98,7 +95,7 @@ defmodule Krasukha.MarketsGen do
   def fetch_ticker(%{ticker: tid} = state, payload) do
     Enum.map(payload, fn({k, v}) ->
       # {1:currencyPair, 2:baseVolume, 3:high24hr, 4:highestBid, 5:id, 6:isFrozen, 7:last, 8:low24hr, 9:lowestAsk, 10:percentChange, 11:quoteVolume}
-      object = ([ k | (Map.values(v) |> Enum.map(fn(e) -> to_float(e) end)) ] |> List.to_tuple)
+      object = ([ k | (Map.values(v) |> Enum.map(fn(e) -> Helpers.String.to_float(e) end)) ] |> List.to_tuple)
       :ok = notify(state, {:fetch_ticker, object})
       :true = :ets.insert(tid, object)
     end)
@@ -108,7 +105,7 @@ defmodule Krasukha.MarketsGen do
   @doc false
   def update_ticker(%{ticker: tid} = state, [_, _, _, [h|t]]) do
     # {1:currencyPair, 2:last, 3:lowestAsk, 4:highestBid, 5:percentChange, 6:baseVolume, 7:quoteVolume, 8:isFrozen, 9:24hrHigh, 10:24hrLow}
-    object = ([ to_atom(h) | Enum.map(t, fn(e) -> to_float(e) end) ] |> List.to_tuple)
+    object = ([ Helpers.String.to_atom(h) | Enum.map(t, fn(e) -> Helpers.String.to_float(e) end) ] |> List.to_tuple)
     :ok = notify(state, {:update_ticker, object})
     :true = :ets.insert(tid, object)
     :ok

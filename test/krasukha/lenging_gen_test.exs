@@ -1,8 +1,7 @@
+alias Krasukha.{LendingGen}
+
 defmodule Krasukha.LendingGenTest do
   use ExUnit.Case, async: true
-
-  alias Krasukha.{LendingGen}
-
 
   setup do
     {:ok, pid} = LendingGen.start_link("BTC")

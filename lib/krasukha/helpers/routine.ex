@@ -1,7 +1,7 @@
+import Krasukha.Helpers.String
+
 defmodule Krasukha.Helpers.Routine do
   @moduledoc false
-  import Krasukha.Helpers.String
-
 
   @doc false
   def start_routine(mod, strategy, %{fulfill_immediately: fulfill_immediately} = params) when is_atom(strategy) do

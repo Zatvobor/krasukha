@@ -1,16 +1,13 @@
-defmodule Krasukha.LendingGen do
-  @moduledoc false
+alias Krasukha.{HTTP, Helpers}
 
+defmodule Krasukha.LendingGen do
   use GenServer
 
-  alias Krasukha.{HTTP, Helpers.Naming}
-
-  import Krasukha.Helpers.String, only: [to_tuple_with_floats: 1]
-
+  @moduledoc false
 
   @doc false
   def start_link(currency, initial_state \\ %{}) when is_binary(currency) do
-    options = [name: Naming.process_name(currency, :lending)]
+    options = [name: Helpers.Naming.process_name(currency, :lending)]
     GenServer.start_link(__MODULE__, [currency, initial_state], options)
   end
 
@@ -26,8 +23,8 @@ defmodule Krasukha.LendingGen do
 
   @doc false
   def __create_loan_orders_tables(currency \\ "untitled") do
-    offers_tid  = :ets.new(Naming.to_name(currency, :loan_offers), __loan_orders_table_access)
-    demands_tid = :ets.new(Naming.to_name(currency, :loan_demands), __loan_orders_table_access)
+    offers_tid  = :ets.new(Helpers.Naming.to_name(currency, :loan_offers), __loan_orders_table_access)
+    demands_tid = :ets.new(Helpers.Naming.to_name(currency, :loan_demands), __loan_orders_table_access)
     %{orders_tids: %{offers_tid: offers_tid, demands_tid: demands_tid}}
   end
 
@@ -121,7 +118,7 @@ defmodule Krasukha.LendingGen do
     flow = [{offers_tid, offers}, {demands_tid, demands}]
     Enum.each(flow, fn({tid, records}) ->
       objects = Enum.map(records, fn(record) ->
-        {rate, amount} = to_tuple_with_floats(record)
+        {rate, amount} = Helpers.String.to_tuple_with_floats(record)
         {rate, amount, record.rangeMax, record.rangeMin}
       end)
       :true = :ets.insert(tid, objects)

@@ -1,11 +1,10 @@
 defmodule Krasukha.Supervisor do
   @moduledoc false
 
-  import Supervisor.Spec, warn: false, only: [supervisor: 3]
-
-
   @doc false
   def child_spec do
+    import Supervisor.Spec, only: [supervisor: 3]
+
     [
       supervisor(
         Supervisor,

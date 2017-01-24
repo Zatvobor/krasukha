@@ -1,7 +1,7 @@
+alias Krasukha.{MarketsGen, WAMP}
+
 defmodule Krasukha.MarketsGenTest do
   use ExUnit.Case, async: true
-
-  alias Krasukha.{MarketsGen, WAMP}
 
   setup do
     {:ok, pid} = MarketsGen.start_link()

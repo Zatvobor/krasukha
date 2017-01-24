@@ -1,7 +1,8 @@
 defmodule Krasukha.Helpers.String do
   @moduledoc false
-  defdelegate to_atom(string), to: String
 
+  @doc false
+  defdelegate to_atom(string), to: String
 
   @doc false
   def to_tuple_with_floats([rate, amount]), do: {to_float(rate), to_float(amount)}

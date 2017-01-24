@@ -1,8 +1,7 @@
+alias Krasukha.{SecretAgent, LendingRoutines}
+
 defmodule Krasukha.SecretAgent.Supervisor do
   @moduledoc false
-
-  alias Krasukha.{SecretAgent, LendingRoutines}
-
 
   @doc false
   def to_pid_from_identifier(term) do

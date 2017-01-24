@@ -1,28 +1,20 @@
 defmodule Krasukha do
-  @moduledoc false
-
   use Application
 
-  import Supervisor.Spec, warn: false, only: [supervisor: 3, worker: 3]
-
-  alias Krasukha.{Helpers.Naming, SecretAgent, MarketsGen, MarketGen, LendingGen, WAMP}
-
+  @moduledoc false
 
   @doc false
-  def start(:normal, _args \\ nil) do
-    Krasukha.Supervisor.start_link()
-  end
+  def start(:normal, _args \\ nil), do: Krasukha.Supervisor.start_link()
 
   @doc false
-  def stop(_state), do: WAMP.disconnect!()
-
+  def stop(_state), do: Krasukha.WAMP.disconnect!()
 
   @doc false
-  def start_wamp_connection, do: WAMP.connect!
+  def start_wamp_connection, do: Krasukha.WAMP.connect!
 
   @doc false
   def start_markets do
-    spec = worker(MarketsGen, [], [restart: :transient])
+    spec = Supervisor.Spec.worker(Krasukha.MarketsGen, [], [restart: :transient])
     Supervisor.start_child(Krasukha.Supervisor, spec)
   end
 
@@ -32,10 +24,12 @@ defmodule Krasukha do
     init(pid, initial_requests)
   end
 
+  alias Krasukha.{Helpers.Naming}
+
   @doc false
   def start_market(currency_pair) do
     id = Naming.process_name(currency_pair, :market)
-    spec = worker(MarketGen, [currency_pair], [id: id, restart: :transient])
+    spec = Supervisor.Spec.worker(Krasukha.MarketGen, [currency_pair], [id: id, restart: :transient])
     Supervisor.start_child(Krasukha.Supervisor, spec)
   end
 
@@ -48,7 +42,7 @@ defmodule Krasukha do
   @doc false
   def start_lending(currency) do
     id = Naming.process_name(currency, :lending)
-    spec = worker(LendingGen, [currency], [id: id, restart: :transient])
+    spec = Supervisor.Spec.worker(Krasukha.LendingGen, [currency], [id: id, restart: :transient])
     Supervisor.start_child(Krasukha.Supervisor, spec)
   end
 
@@ -71,18 +65,18 @@ defmodule Krasukha do
 
   @doc false
   def start_routine(mod, agent, strategy, params) do
-    id = make_id()
-    identifier = SecretAgent.identifier(agent)
-    spec = worker(mod, [identifier, strategy, params], [id: id, restart: :transient])
+    id = Naming.monotonic_id()
+    identifier = Krasukha.SecretAgent.identifier(agent)
+    spec = Supervisor.Spec.worker(mod, [identifier, strategy, params], [id: id, restart: :transient])
     state = Supervisor.start_child(Module.concat(mod, Supervisor), spec)
-    with {:ok, _pid} <- state, do: SecretAgent.put_routine(agent, id)
+    with {:ok, _pid} <- state, do: Krasukha.SecretAgent.put_routine(agent, id)
     state
   end
 
   @doc false
   def start_secret_agent(key, secret) do
-    id = make_id()
-    spec = worker(SecretAgent, [key, secret, id], [id: id, restart: :permanent])
+    id = Naming.monotonic_id()
+    spec = Supervisor.Spec.worker(Krasukha.SecretAgent, [key, secret, id], [id: id, restart: :permanent])
     Supervisor.start_child(Krasukha.SecretAgent.Supervisor, spec)
   end
 
@@ -91,6 +85,4 @@ defmodule Krasukha do
     responses = Enum.map(initial_requests, fn(request) -> GenServer.call(pid, request) end)
     {:ok, pid, responses}
   end
-
-  defp make_id(), do: :erlang.unique_integer([:monotonic])
 end

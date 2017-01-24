@@ -1,7 +1,7 @@
+alias Krasukha.HTTP
+
 defmodule Krasukha.HTTP.PublicAPI do
   @moduledoc false
-
-  alias Krasukha.HTTP
 
   @doc false
   def uri, do: %URI{ HTTP.uri | path: "/public" }

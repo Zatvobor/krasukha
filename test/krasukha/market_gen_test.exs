@@ -1,7 +1,7 @@
+alias Krasukha.{MarketGen}
+
 defmodule Krasukha.MarketGenTest do
   use ExUnit.Case, async: true
-
-  alias Krasukha.{MarketGen}
 
   setup do
     {:ok, pid} = MarketGen.start_link("BTC_SC")

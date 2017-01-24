@@ -1,7 +1,7 @@
+alias Krasukha.{SecretAgent, SecretAgent.Supervisor}
+
 defmodule Krasukha.SecretAgent.SupervisorTest do
   use ExUnit.Case, async: true
-
-  alias Krasukha.{SecretAgent, SecretAgent.Supervisor}
 
   setup_all do
     :ok = Application.ensure_started(:krasukha)
@@ -11,7 +11,6 @@ defmodule Krasukha.SecretAgent.SupervisorTest do
     {:ok, pid} = Krasukha.start_secret_agent("key", "secret")
     [agent: pid]
   end
-
 
   test "to_pid_from_identifier/1", %{agent: pid} do
     actual = Supervisor.to_pid_from_identifier(:unknown)

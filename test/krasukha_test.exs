@@ -1,13 +1,13 @@
+import Krasukha
+
 defmodule KrasukhaTest do
   use ExUnit.Case
 
   doctest Krasukha
-  import Krasukha
 
   setup_all do
     :ok = Application.ensure_started(:krasukha)
   end
-
 
   test "start_markets/0" do
     assert {:ok, _pid} = start_markets()

@@ -1,11 +1,10 @@
+alias Krasukha.SecretAgent
+
 defmodule Krasukha.HTTP do
   @moduledoc false
 
-  alias Krasukha.{SecretAgent}
-
-
-  @uri URI.parse("https://poloniex.com")
   @doc false
+  @uri URI.parse("https://poloniex.com")
   def uri, do: @uri
 
   @doc false
@@ -36,7 +35,7 @@ defmodule Krasukha.HTTP do
   def post(command, params, agent, uri) do
     url  = to_charlist(url(uri))
     body = URI.encode_query([command: command, nonce: nonce] ++ params)
-    key  = to_charlist(Krasukha.SecretAgent.key(agent))
+    key  = to_charlist(SecretAgent.key(agent))
     sign = :erlang.binary_to_list(sign(agent, body))
 
     request(:post, {url, [{'Key', key}, {'Sign', sign}], 'application/x-www-form-urlencoded', body}, [], [{:body_format, :binary}])

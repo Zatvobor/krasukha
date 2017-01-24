@@ -1,7 +1,7 @@
+import Krasukha.SecretAgent
+
 defmodule Krasukha.SecretAgentTest do
   use ExUnit.Case, async: true
-
-  import Krasukha.SecretAgent
 
   describe "agent w/ identifier" do
     test "start_link/3" do

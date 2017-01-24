@@ -1,15 +1,15 @@
+alias Krasukha.HTTP
+
 defmodule Krasukha.HTTP.PrivateAPI do
   @moduledoc false
-
-  alias Krasukha.{HTTP}
-  import Krasukha.SecretAgent, only: [to_pid: 1]
 
   @typedoc "Returns your balances sorted by account"
   @type account :: :all | :lending | :exchange | :margin
 
-
   @doc false
   def uri, do: %URI{ HTTP.uri | path: "/tradingApi" }
+
+  import Krasukha.SecretAgent, only: [to_pid: 1]
 
   @doc false
   def return_balances(agent) do

@@ -1,9 +1,7 @@
+alias Krasukha.{HTTP, Helpers}
+
 defmodule Krasukha.SecretAgent do
   @moduledoc false
-
-  import Krasukha.Helpers.String
-  alias Krasukha.{HTTP.PrivateAPI}
-
 
   @doc false
   def start_link(key, secret, identifier \\ nil), do: start_link(%{key: key, secret: secret, identifier: identifier})
@@ -34,8 +32,8 @@ defmodule Krasukha.SecretAgent do
 
   @doc false
   def fetch_available_account_balance(agent, account) when is_pid(agent) and account in [:lending, :exchange, :margin] do
-    {:ok, 200, payload} = PrivateAPI.return_available_account_balances(agent, [account: account])
-    payload = Enum.map(payload[account], fn({k,v}) -> {k, to_float(v)} end)
+    {:ok, 200, payload} = HTTP.PrivateAPI.return_available_account_balances(agent, [account: account])
+    payload = Enum.map(payload[account], fn({k,v}) -> {k, Helpers.String.to_float(v)} end)
     :ok = Agent.update(agent, fn(state) -> Map.put(state, account, payload) end)
   end
   def fetch_available_account_balance(agent, account), do: fetch_available_account_balance(to_pid(agent), account)
@@ -51,9 +49,9 @@ defmodule Krasukha.SecretAgent do
 
   @doc false
   def fetch_active_loans(agent) when is_pid(agent) do
-    {:ok, 200, payload} = PrivateAPI.return_active_loans(agent)
+    {:ok, 200, payload} = HTTP.PrivateAPI.return_active_loans(agent)
     payload = map_nested_values(payload, fn(record) ->
-      {rate, amount, fees} = to_tuple_with_floats(record)
+      {rate, amount, fees} = Helpers.String.to_tuple_with_floats(record)
       %{record| rate: rate, amount: amount, fees: fees}
     end)
     :ok = Agent.update(agent, fn(state) -> Map.put(state, :active_loans, payload) end)
@@ -71,9 +69,9 @@ defmodule Krasukha.SecretAgent do
 
   @doc false
   def fetch_open_loan_offers(agent) when is_pid(agent) do
-    {:ok, 200, payload} = PrivateAPI.return_open_loan_offers(agent)
+    {:ok, 200, payload} = HTTP.PrivateAPI.return_open_loan_offers(agent)
     payload = map_nested_values(payload, fn(record) ->
-      {rate, amount} = to_tuple_with_floats(record)
+      {rate, amount} = Helpers.String.to_tuple_with_floats(record)
       %{record | rate: rate, amount: amount}
     end)
     :ok = Agent.update(agent, fn(state) -> Map.put(state, :open_loan_offers, payload) end)

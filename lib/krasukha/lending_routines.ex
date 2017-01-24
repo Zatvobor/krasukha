@@ -1,8 +1,7 @@
+alias Krasukha.{HTTP, Helpers.Naming, Helpers.Routine, Helpers.String}
+
 defmodule Krasukha.LendingRoutines do
   @moduledoc false
-
-  alias Krasukha.{HTTP, Helpers.Naming, Helpers.Routine, Helpers.String}
-
 
   @doc false
   def start_link(agent, strategy, params) do
