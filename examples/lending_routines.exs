@@ -23,4 +23,9 @@ Process.exit(main_routine, :normal)
 
 #start routine and manage them over LendingRoutines.Supervisor
 {:ok, xrp_lending} = Krasukha.start_lending("XRP")
-{:ok, available_balance_to_gap_position} = Krasukha.start_lending_routine(agent, :available_balance_to_gap_position, %{currency: "XRP", fetch_loan_orders: true})
+params =  %{fulfill_immediately: true, currency: "XRP", duration: 7, fetch_loan_orders: true, gap_top_position: 14, sleep_time_inactive: 901, sleep_time_inactive_seed: 30}
+{:ok, available_balance_to_gap_position} = Krasukha.start_lending_routine(agent, :available_balance_to_gap_position, params)
+
+#cancel order
+params =  %{currency: "XRP", after_time_inactive: 14400}
+Krasukha.start_lending_routine(agent, :cancel_open_loan_offers, params)
