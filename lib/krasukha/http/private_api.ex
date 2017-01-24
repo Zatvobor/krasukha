@@ -60,4 +60,14 @@ defmodule Krasukha.HTTP.PrivateAPI do
   def toggle_auto_renew(agent, params \\ [orderNumber: -1]) do
     HTTP.post("toggleAutoRenew", params, to_pid(agent), uri)
   end
+
+  @doc false
+  def buy(agent, params \\ [currencyPair: "BTC_SC", rate: 0.00000023, amount: 400, fillOrKill: 0, immediateOrCancel: 0, postOnly: 0]) do
+    HTTP.post("buy", params, to_pid(agent), uri)
+  end
+
+  @doc false
+  def sell(agent, params \\ [currencyPair: "BTC_SC", rate: 0.00000023, amount: 400, fillOrKill: 0, immediateOrCancel: 0, postOnly: 0]) do
+    HTTP.post("sell", params, to_pid(agent), uri)
+  end
 end
