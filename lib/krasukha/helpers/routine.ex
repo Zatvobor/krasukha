@@ -1,4 +1,4 @@
-import Krasukha.Helpers.String
+alias Krasukha.{Helpers}
 
 defmodule Krasukha.Helpers.Routine do
   @moduledoc false
@@ -36,6 +36,6 @@ defmodule Krasukha.Helpers.Routine do
   @doc false
   def get_account_balance(%{agent: agent, currency: currency}, type) do
     Krasukha.SecretAgent.account_balance!(agent, type)[String.to_atom(currency)]
-      |> float_to_binary()
+      |> Helpers.String.to_float()
   end
 end

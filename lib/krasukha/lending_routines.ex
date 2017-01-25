@@ -1,4 +1,4 @@
-alias Krasukha.{HTTP, Helpers.Naming, Helpers.Routine, Helpers.String}
+alias Krasukha.{HTTP, Helpers}
 
 defmodule Krasukha.LendingRoutines do
   @moduledoc false
@@ -13,12 +13,12 @@ defmodule Krasukha.LendingRoutines do
   @doc false
   def start(agent, strategy, params) do
     state = init(agent, params)
-    spawn(Routine, :start_routine, [__MODULE__, strategy, state])
+    spawn(Helpers.Routine, :start_routine, [__MODULE__, strategy, state])
   end
 
   @doc false
   def default_params() do
-    Routine.default_params()
+    Helpers.Routine.default_params()
       # known options for strategies like `available_balance_to_gap_position`
       |> Map.merge(%{duration: 2, auto_renew: 0, gap_top_position: 10}) # gap_bottom_position
       |> Map.merge(%{fetch_loan_orders: false})
@@ -30,14 +30,14 @@ defmodule Krasukha.LendingRoutines do
   def init(agent, %{currency: currency} = params) do
     default_params()
       |> Map.merge(params)
-      |> Map.merge(%{currency_lending: Naming.process_name(currency, :lending)})
+      |> Map.merge(%{currency_lending: Helpers.Naming.process_name(currency, :lending)})
       |> Map.merge(%{agent: agent})
   end
 
   @doc false
   def cancel_open_loan_offers(%{agent: agent, currency: currency} = params) do
     {:ok, 200, open_loan_offers} = HTTP.PrivateAPI.return_open_loan_offers(agent)
-    open_loan_offers = open_loan_offers[String.to_atom(currency)]
+    open_loan_offers = open_loan_offers[Helpers.String.to_atom(currency)]
     for open_loan_offer <- filter_open_loan_offers(open_loan_offers, params) do
       {:ok, 200, _} = HTTP.PrivateAPI.cancel_loan_offer(agent, [orderNumber: open_loan_offer.id])
       # %{success: 1, message: "Loan offer canceled."}
@@ -48,10 +48,10 @@ defmodule Krasukha.LendingRoutines do
   def filter_open_loan_offers(nil, _params), do: []
   def filter_open_loan_offers(open_loan_offers, %{after_time_inactive: after_time_inactive}) do
     for open_loan_offer <- open_loan_offers do
-      created_at_unix_time = String.to_erl_datetime(open_loan_offer.date)
-        |> String.to_unix_time
-      current_unix_time = String.now_to_erl_datetime()
-        |> String.to_unix_time
+      created_at_unix_time = Helpers.String.to_erl_datetime(open_loan_offer.date)
+        |> Helpers.String.to_unix_time
+      current_unix_time = Helpers.String.now_to_erl_datetime()
+        |> Helpers.String.to_unix_time
       if (current_unix_time - created_at_unix_time) >= after_time_inactive do
         open_loan_offer
       end
@@ -61,10 +61,11 @@ defmodule Krasukha.LendingRoutines do
 
   @doc false
   def available_balance_to_gap_position(params) do
-    balance = Routine.get_account_balance(params, :lending)
-    if is_binary(balance) do
+    balance = Helpers.Routine.get_account_balance(params, :lending)
+    with balance when is_number(balance) <- Helpers.Routine.get_account_balance(params, :lending) do
       {rate, _, _, _} = find_offer_object(params)
-      rate = String.float_to_binary(rate)
+      rate = Helpers.String.float_to_binary(rate)
+      balance = Helpers.String.float_to_binary(balance)
       create_loan_offer(rate, balance, params)
     end
   end
