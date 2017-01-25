@@ -15,9 +15,11 @@ defmodule Krasukha.Helpers.String do
   def to_float(value) when is_binary(value) do
     String.to_float(value)
   rescue
-    ArgumentError -> String.to_integer(value)
+    ArgumentError -> to_float(String.to_integer(value))
   end
-  def to_float(value), do: value
+  def to_float(value) when is_float(value), do: value
+  def to_float(value) when is_integer(value), do: value / 1
+  def to_float(nil), do: nil
 
   @doc false
   def float_to_binary(nil), do: nil

@@ -104,7 +104,7 @@ defmodule Krasukha.MarketsGenTest do
       assert :ok = GenEvent.add_handler(event_manager, EventHandler, [self()])
 
       assert :ok = MarketsGen.update_ticker(state, @message)
-      assert_receive {:update_ticker, {:BTC_BBR, 6.9501e-4, 7.4346e-4, 6.9501e-4, -0.00742634, 8.63286802, 11983.47150109, 0, 0.0010792, 4.5422e-4}}
+      assert_receive {:update_ticker, {:BTC_BBR, 6.9501e-4, 7.4346e-4, 6.9501e-4, -0.00742634, 8.63286802, 11983.47150109, 0.0, 0.0010792, 4.5422e-4}}
     end
   end
 end

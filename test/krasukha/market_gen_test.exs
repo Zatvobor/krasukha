@@ -107,9 +107,9 @@ defmodule Krasukha.MarketGenTest do
 
       assert :ok = MarketGen.fetch_order_book(state, asks, bids)
       assert :ets.info(asks_book_tid, :size) == 2
-      assert :ets.lookup(asks_book_tid, 0.05) == [{0.05, 1}]
+      assert :ets.lookup(asks_book_tid, 0.05) == [{0.05, 1.0}]
       assert :ets.info(bids_book_tid, :size) == 2
-      assert :ets.lookup(bids_book_tid, 0.03) == [{0.03, 1}]
+      assert :ets.lookup(bids_book_tid, 0.03) == [{0.03, 1.0}]
     end
 
     test "fetch_order_book/3 and notifying object over GenEvent" do
@@ -122,8 +122,8 @@ defmodule Krasukha.MarketGenTest do
       %{event_manager: event_manager} = state
       assert :ok = GenEvent.add_handler(event_manager, EventHandler, [self()])
       assert :ok = MarketGen.fetch_order_book(state, asks, bids)
-      assert_receive {:fetch_order_book, [{0.05, 1}, {0.06, 1}]}
-      assert_receive {:fetch_order_book, [{0.04, 1}, {0.03, 1}]}
+      assert_receive {:fetch_order_book, [{0.05, 1.0}, {0.06, 1.0}]}
+      assert_receive {:fetch_order_book, [{0.04, 1.0}, {0.03, 1.0}]}
     end
   end
 
@@ -167,7 +167,7 @@ defmodule Krasukha.MarketGenTest do
       assert :ets.info(tid, :size) == 2
       assert :ets.lookup(tid, 0.00000110) == [{0.00000110, 10.10}]
       assert_receive {:update_order_book, :orderBookModify, {1.1e-6, 10.1}}
-      assert_receive {:update_order_book, :orderBookModify, {1.11e-6, 20}}
+      assert_receive {:update_order_book, :orderBookModify, {1.11e-6, 20.0}}
     end
   end
 
