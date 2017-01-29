@@ -30,7 +30,7 @@ defmodule Krasukha do
   def start_market(currency_pair) do
     id = Naming.process_name(currency_pair, :market)
     spec = Supervisor.Spec.worker(Krasukha.MarketGen, [currency_pair], [id: id, restart: :transient])
-    Supervisor.start_child(Krasukha.Supervisor, spec)
+    Supervisor.start_child(Krasukha.ExchangeRoutines.Supervisor, spec)
   end
 
   @doc false
@@ -43,7 +43,7 @@ defmodule Krasukha do
   def start_lending(currency) do
     id = Naming.process_name(currency, :lending)
     spec = Supervisor.Spec.worker(Krasukha.LendingGen, [currency], [id: id, restart: :transient])
-    Supervisor.start_child(Krasukha.Supervisor, spec)
+    Supervisor.start_child(Krasukha.LendingRoutines.Supervisor, spec)
   end
 
   @doc false
