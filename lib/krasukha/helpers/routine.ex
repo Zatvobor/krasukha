@@ -16,8 +16,10 @@ defmodule Krasukha.Helpers.Routine do
       {:EXIT, _, reason} when reason in [:normal, :shutdown] -> :ok
     after
       sleep_time_timeout(params) ->
-        apply(mod, strategy, [params])
-        loop(mod, strategy, params)
+        case apply(mod, strategy, [params]) do
+          {:exit, _reason} -> :ok
+          _                -> loop(mod, strategy, params)
+        end
     end
   end
 
