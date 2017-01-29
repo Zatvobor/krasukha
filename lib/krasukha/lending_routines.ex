@@ -60,8 +60,8 @@ defmodule Krasukha.LendingRoutines do
   end
 
   @doc false
-  def available_balance_to_gap_position(params) do
-    with balance when is_number(balance) <- Helpers.Routine.get_account_balance(params, :lending) do
+  def available_balance_to_gap_position(%{agent: agent, currency: currency} = params) do
+    with balance when is_number(balance) <- Krasukha.SecretAgent.account_balance!(agent, :lending, currency) do
       {rate, _, _, _} = find_offer_object(params)
       rate = Helpers.String.float_to_binary(rate)
       balance = Helpers.String.float_to_binary(balance)

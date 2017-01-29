@@ -22,13 +22,28 @@ defmodule Krasukha.SecretAgent do
   def key_and_secret(agent), do: {fetch(agent, :key), fetch(agent, :secret)}
 
   @doc false
-  def account_balance!(agent, account \\ :exchange) do
+  def account_balance!(agent, account \\ :exchange) when is_atom(account) do
     :ok = fetch_available_account_balance(agent, account)
     account_balance(agent, account)
   end
 
   @doc false
-  def account_balance(agent, account \\ :exchange), do: Agent.get(to_pid(agent), fn(%{^account => a}) -> a end)
+  def account_balance!(agent, account, currency) when is_atom(currency) do
+    :ok = fetch_available_account_balance(agent, account)
+    account_balance(agent, account, currency)
+  end
+
+  @doc false
+  def account_balance(agent, account \\ :exchange) when is_atom(account), do: Agent.get(to_pid(agent), fn(%{^account => a}) -> a end)
+
+  @doc false
+  def account_balance(agent, account, currency) when is_atom(currency) do
+    account_balance(agent, account)[currency]
+    |> Helpers.String.to_float()
+  end
+  def account_balance(agent, account, currency) when is_binary(currency) do
+    account_balance(agent, account, Helpers.String.to_atom(currency))
+  end
 
   @doc false
   def fetch_available_account_balance(agent, account) when is_pid(agent) and account in [:lending, :exchange, :margin] do

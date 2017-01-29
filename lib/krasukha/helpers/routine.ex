@@ -1,5 +1,3 @@
-alias Krasukha.{Helpers}
-
 defmodule Krasukha.Helpers.Routine do
   @moduledoc false
 
@@ -33,11 +31,5 @@ defmodule Krasukha.Helpers.Routine do
   @doc false
   def sleep_time_timeout(%{sleep_time_inactive: sleep_time_inactive, sleep_time_inactive_seed: sleep_time_inactive_seed}) do
     (:rand.uniform(sleep_time_inactive_seed) * 1000) + (sleep_time_inactive * 1000) # getting timeout in milliseconds
-  end
-
-  @doc false
-  def get_account_balance(%{agent: agent, currency: currency}, type) do
-    Krasukha.SecretAgent.account_balance!(agent, type)[String.to_atom(currency)]
-      |> Helpers.String.to_float()
   end
 end

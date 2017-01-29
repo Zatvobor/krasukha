@@ -29,10 +29,6 @@ defmodule Krasukha.SecretAgentTest do
     assert key_and_secret(pid) == {"key", "secret"}
   end
 
-  test "account_balance/1", %{agent: pid} do
-    assert account_balance(pid, :all) == []
-  end
-
   test "active_loans/1", %{agent: pid} do
     assert account_balance(pid, :active_loans) == []
   end
@@ -53,6 +49,27 @@ defmodule Krasukha.SecretAgentTest do
   test "update_routines/2", %{agent: pid} do
     assert :ok = update_routines(pid, [1,2])
     assert routines(pid) == [1,2]
+  end
+
+  describe "getting a balance" do
+    @lending_balance %{XRP: 1}
+    setup %{agent: agent} do
+      Agent.update(agent, fn(state) -> Map.put(state, :lending, @lending_balance) end)
+    end
+
+    test "account_balance/1 by default", %{agent: pid} do
+      assert account_balance(pid, :all) == []
+    end
+
+    test "account_balance/1", %{agent: pid} do
+      assert account_balance(pid, :lending) == @lending_balance
+    end
+
+    test "account_balance/2", %{agent: pid} do
+      assert account_balance(pid, :lending, :XRP) == 1.0
+      assert account_balance(pid, :lending, "XRP") == 1.0
+      assert account_balance(pid, :lending, :unknown) == nil
+    end
   end
 
   @tag :skip # @tag [external: true]
