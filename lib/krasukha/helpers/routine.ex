@@ -1,11 +1,12 @@
+require Logger
+
 defmodule Krasukha.Helpers.Routine do
   @moduledoc false
 
   @doc false
   def start_routine(mod, strategy, %{fulfill_immediately: fulfill_immediately} = params) when is_atom(strategy) do
     Process.flag(:trap_exit, true)
-    if(fulfill_immediately, do: apply(mod, strategy, [params]))
-    loop(mod, strategy, params)
+    if(fulfill_immediately, do: call(mod, strategy, params), else: loop(mod, strategy, params))
   end
 
   @doc false
@@ -13,11 +14,18 @@ defmodule Krasukha.Helpers.Routine do
     receive do
       {:EXIT, _, reason} when reason in [:normal, :shutdown] -> :ok
     after
-      sleep_time_timeout(params) ->
-        case apply(mod, strategy, [params]) do
-          {:exit, _reason} -> :ok
-          _                -> loop(mod, strategy, params)
-        end
+      sleep_time_timeout(params) -> call(mod, strategy, params)
+    end
+  end
+
+  @doc false
+  def call(mod, strategy, params) do
+    Logger.info "entering into #{mod}.#{strategy}/1 strategy"
+    Logger.debug "> its strategy has #{inspect(params)} params"
+    case apply(mod, strategy, [params]) do
+      {:exit, reason}          -> reason
+      state when is_map(state) -> loop(mod, strategy, state)
+      _                        -> loop(mod, strategy, params)
     end
   end
 
