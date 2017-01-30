@@ -36,13 +36,20 @@ defmodule Krasukha.ExchangeRoutines do
   end
 
   @doc false
+  defmacro is_buy_lowest_possibility(rate, stop_rate, balance, best_amount) do
+    quote do
+      (unquote(rate) < unquote(stop_rate)) and (unquote(balance) > unquote(rate) * unquote(best_amount))
+    end
+  end
+
+  @doc false
   def buy_lowest(%{agent: agent, currency_pair: currency_pair, market: market} = params) do
     tab = GenServer.call(market, {:book_tid, :asks})
     key = :ets.first(tab)
     extended_params = Map.merge(params, %{currency: Helpers.Naming.head_currency_pair(currency_pair)})
     with :ok <- check_stop_limit(params),
       possibility = find_possibility_for_order(tab, key, extended_params),
-      {balance, best_amount, rate, stop_rate, order} when (rate < stop_rate and balance > rate * best_amount) <- possibility,
+      {balance, best_amount, rate, stop_rate, order} when is_buy_lowest_possibility(rate, stop_rate, balance, best_amount) <- possibility,
       {:ok, 200, response} <- HTTP.PrivateAPI.buy(agent, order) do
         # %{orderNumber: "24213262617", resultingTrades: [%{amount: "15.00000000", date: "2017-01-30 17:52:44", rate: "0.00000696", total: "0.00010440", tradeID: "1600555", type: "buy"}]}
         # %{orderNumber: "24212832048", resultingTrades: []}
@@ -52,13 +59,20 @@ defmodule Krasukha.ExchangeRoutines do
   end
 
   @doc false
+  defmacro is_sell_highest_possibility(rate, stop_rate, balance, best_amount) do
+    quote do
+      (unquote(rate) > unquote(stop_rate) or unquote(stop_rate) == :infinity) and (unquote(balance) > unquote(best_amount))
+    end
+  end
+
+  @doc false
   def sell_highest(%{agent: agent, currency_pair: currency_pair, market: market} = params) do
     tab = GenServer.call(market, {:book_tid, :bids})
     key = :ets.last(tab)
     extended_params = Map.merge(params, %{currency: Helpers.Naming.tail_currency_pair(currency_pair)})
     with :ok <- check_stop_limit(params),
       possibility = find_possibility_for_order(tab, key, extended_params),
-      {balance, best_amount, rate, stop_rate, order} when (rate > stop_rate and balance > best_amount) <- possibility,
+      {balance, best_amount, rate, stop_rate, order} when is_sell_highest_possibility(rate, stop_rate, balance, best_amount) <- possibility,
       {:ok, 200, response} <- HTTP.PrivateAPI.sell(agent, order) do
         # %{}
         response |> inspect |> Logger.info
