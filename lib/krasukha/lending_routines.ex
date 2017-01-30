@@ -1,3 +1,4 @@
+require Logger
 alias Krasukha.{HTTP, Helpers}
 
 defmodule Krasukha.LendingRoutines do
@@ -39,8 +40,9 @@ defmodule Krasukha.LendingRoutines do
     {:ok, 200, open_loan_offers} = HTTP.PrivateAPI.return_open_loan_offers(agent)
     open_loan_offers = open_loan_offers[Helpers.String.to_atom(currency)]
     for open_loan_offer <- filter_open_loan_offers(open_loan_offers, params) do
-      {:ok, 200, _} = HTTP.PrivateAPI.cancel_loan_offer(agent, [orderNumber: open_loan_offer.id])
+      {:ok, 200, response} = HTTP.PrivateAPI.cancel_loan_offer(agent, [orderNumber: open_loan_offer.id])
       # %{success: 1, message: "Loan offer canceled."}
+      response |> inspect |> Logger.info
     end
   end
 
@@ -109,7 +111,8 @@ defmodule Krasukha.LendingRoutines do
   @doc false
   def create_loan_offer(rate, amount, %{agent: agent, currency: currency, duration: duration, auto_renew: auto_renew}) do
     params = [currency: currency, lendingRate: rate, amount: amount, duration: duration, autoRenew: auto_renew]
-    {:ok, 200, _} = HTTP.PrivateAPI.create_loan_offer(agent, params)
+    {:ok, 200, response} = HTTP.PrivateAPI.create_loan_offer(agent, params)
     # %{message: "Loan order placed.", orderID: 136543484, success: 1}
+    response |> inspect |> Logger.info
   end
 end

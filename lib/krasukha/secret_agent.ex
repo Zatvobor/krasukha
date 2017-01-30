@@ -28,7 +28,7 @@ defmodule Krasukha.SecretAgent do
   end
 
   @doc false
-  def account_balance!(agent, account, currency) when is_atom(currency) do
+  def account_balance!(agent, account, currency) when is_atom(account) do
     :ok = fetch_available_account_balance(agent, account)
     account_balance(agent, account, currency)
   end

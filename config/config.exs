@@ -3,6 +3,7 @@
 use Mix.Config
 
     config :logger,
-      level: :warn,
+      utc_log: true,
+      level: if(Mix.env == :dev, do: :info, else: :warn),
       handle_otp_reports: true,
       handle_sasl_reports: true
