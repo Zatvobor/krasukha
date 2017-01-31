@@ -21,19 +21,22 @@ defmodule Krasukha.ExchangeRoutines do
   def default_params() do
     Helpers.Routine.default_params()
       # known options for strategies like `buy_lowest/sell_highest`
-      |> Map.merge(%{stop_limit: :infinity, stop_limit_acc: 0.0})
+      |> Map.merge(%{stop_rate: :infinity, stop_limit: :infinity, stop_limit_acc: 0.0})
       |> Map.merge(%{fillOrKill: 0, immediateOrCancel: 0, postOnly: 0})
   end
 
   @doc false
-  def init(agent, %{currency_pair: currency_pair, stop_rate: stop_rate, limit_amount: limit_amount} = params) do
+  def init(agent, %{currency_pair: currency_pair, limit_amount: limit_amount} = params) do
     default_params()
       |> Map.merge(params)
-      |> Map.merge(%{stop_limit: if(is_integer(params.stop_limit), do: (params.stop_limit / 1), else: params.stop_limit)})
-      |> Map.merge(%{stop_rate: (stop_rate / 1), limit_amount: (limit_amount / 1)})
+      |> Map.merge(%{stop_rate: nz(params.stop_rate), stop_limit: nz(params.stop_limit)})
+      |> Map.merge(%{limit_amount: nz(limit_amount)})
       |> Map.merge(%{market: Helpers.Naming.process_name(currency_pair, :market)})
       |> Map.merge(%{agent: agent})
   end
+
+  defp nz(field) when field in [:inifinity], do: field
+  defp nz(field) when is_integer(field), do: (field / 1)
 
   @doc false
   defmacro is_buy_lowest_possibility(rate, stop_rate, balance, best_amount) do
