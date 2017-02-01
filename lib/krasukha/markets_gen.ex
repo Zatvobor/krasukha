@@ -6,12 +6,12 @@ defmodule Krasukha.MarketsGen do
   @moduledoc false
 
   @doc false
-  def start_link() do
-    GenServer.start_link(__MODULE__, :ok, [name: :markets])
+  def start_link(preflight_opts \\ []) do
+    GenServer.start_link(__MODULE__, preflight_opts, [name: :markets])
   end
 
   @doc false
-  def init(:ok) do
+  def init(preflight_opts) do
     %{subscriber: subscriber} = WAMP.connection()
 
     state = %{}
@@ -19,7 +19,19 @@ defmodule Krasukha.MarketsGen do
       |> Map.merge(__create_ticker_table())
       |> Map.merge(__create_gen_event())
 
+    # applies preflight setup
+    state = apply_preflight_opts(state, preflight_opts)
+
     {:ok, state}
+  end
+
+  @doc false
+  defp apply_preflight_opts(state, []), do: state
+  defp apply_preflight_opts(state, [h | t]) do
+    new_state = case h do
+      function when is_atom(function) -> apply(__MODULE__, function, [state])
+    end
+    apply_preflight_opts(new_state, t)
   end
 
   @doc false
@@ -59,15 +71,14 @@ defmodule Krasukha.MarketsGen do
 
   @doc false
   def handle_call(:fetch_ticker, _from, state) do
-    {:ok, 200, payload} = HTTP.PublicAPI.return_ticker()
-    fetched = fetch_ticker(state, payload)
-    {:reply, fetched, state}
+    new_state = fetch_ticker(state)
+    {:reply, new_state.fetch_ticker_result, new_state}
   end
 
   @doc false
-  def handle_call(:subscribe_ticker, _from, %{subscriber: subscriber} = state) do
-    {:ok, ticker_subscription} = WAMP.subscribe(subscriber, "ticker")
-    {:reply, {:ok, ticker_subscription},  Map.put(state, :ticker_subscription, ticker_subscription)}
+  def handle_call(:subscribe_ticker, _from, state) do
+    new_state = subscribe_ticker(state)
+    {:reply, {:ok, new_state.ticker_subscription}, new_state}
   end
 
   @doc false
@@ -90,6 +101,24 @@ defmodule Krasukha.MarketsGen do
 
 
   # Client API
+
+  @doc false
+  def subscribe_ticker(%{subscriber: nil} = state) do
+    %{subscriber: subscriber} = WAMP.connection()
+    Map.put(state, :subscriber, subscriber)
+      |> subscribe_ticker
+  end
+  def subscribe_ticker(%{subscriber: subscriber} = state) do
+    {:ok, ticker_subscription} = WAMP.subscribe(subscriber, "ticker")
+    Map.put(state, :ticker_subscription, ticker_subscription)
+  end
+
+  @doc false
+  def fetch_ticker(state) do
+    {:ok, 200, payload} = HTTP.PublicAPI.return_ticker()
+    result = fetch_ticker(state, payload)
+    Map.put(state, :fetch_ticker_result, result)
+  end
 
   @doc false
   def fetch_ticker(%{ticker: tid} = state, payload) do

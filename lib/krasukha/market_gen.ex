@@ -6,13 +6,13 @@ defmodule Krasukha.MarketGen do
   @moduledoc false
 
   @doc false
-  def start_link(currency_pair) when is_binary(currency_pair) do
+  def start_link(currency_pair, preflight_opts \\ []) when is_binary(currency_pair) do
     options = [name: Helpers.Naming.process_name(currency_pair, :market)]
-    GenServer.start_link(__MODULE__, [currency_pair], options)
+    GenServer.start_link(__MODULE__, [currency_pair, preflight_opts], options)
   end
 
   @doc false
-  def init([currency_pair]) do
+  def init([currency_pair, preflight_opts]) do
     %{subscriber: subscriber} = WAMP.connection()
 
     state = %{}
@@ -21,7 +21,20 @@ defmodule Krasukha.MarketGen do
       |> Map.merge(__create_history_table(currency_pair))
       |> Map.merge(__create_gen_event())
 
+    # applies preflight setup
+    state = apply_preflight_opts(state, preflight_opts)
+
     {:ok, state}
+  end
+
+  @doc false
+  defp apply_preflight_opts(state, []), do: state
+  defp apply_preflight_opts(state, [h | t]) do
+    new_state = case h do
+      {function, args} when is_atom(function) -> apply(__MODULE__, function, [state, args])
+      function when is_atom(function) -> apply(__MODULE__, function, [state])
+    end
+    apply_preflight_opts(new_state, t)
   end
 
   @doc false
@@ -96,14 +109,14 @@ defmodule Krasukha.MarketGen do
 
   @doc false
   def handle_call(:fetch_order_book, _from, %{currency_pair: currency_pair} = state) do
-    fetched = fetch_order_book(state, [currencyPair: currency_pair, depth: 1])
-    {:reply, fetched, state}
+    new_state = fetch_order_book(state, [currencyPair: currency_pair, depth: 1])
+    {:reply, new_state.fetch_order_book_result, new_state}
   end
 
   @doc false
   def handle_call({:fetch_order_book, [depth: depth]}, _from, %{currency_pair: currency_pair} = state) do
-    fetched = fetch_order_book(state, [currencyPair: currency_pair, depth: depth])
-    {:reply, fetched, state}
+    new_state = fetch_order_book(state, [currencyPair: currency_pair, depth: depth])
+    {:reply, new_state.fetch_order_book_result, new_state}
   end
 
   @doc false
@@ -113,9 +126,9 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def handle_call(:subscribe, _from, %{currency_pair: currency_pair, subscriber: subscriber} = state) do
-    {:ok, subscription} = WAMP.subscribe(subscriber, currency_pair)
-    {:reply, {:ok, subscription},  Map.put(state, :subscription, subscription)}
+  def handle_call(:subscribe, _from, state) do
+    new_state = subscribe(state)
+    {:reply, {:ok, new_state.subscription},  new_state}
   end
 
   @doc false
@@ -136,9 +149,21 @@ defmodule Krasukha.MarketGen do
   import Helpers.String, only: [to_atom: 1, to_float: 1, to_tuple_with_floats: 1]
 
   @doc false
-  defp fetch_order_book(state, params) do
+  def subscribe(%{subscriber: nil} = state) do
+    %{subscriber: subscriber} = WAMP.connection()
+    Map.put(state, :subscriber, subscriber)
+     |> subscribe
+  end
+  def subscribe(%{currency_pair: currency_pair, subscriber: subscriber} = state) do
+    {:ok, subscription} = WAMP.subscribe(subscriber, currency_pair)
+    Map.put(state, :subscription, subscription)
+  end
+
+  @doc false
+  def fetch_order_book(state, params) do
     {:ok, 200, %{asks: asks, bids: bids, isFrozen: "0"}} = HTTP.PublicAPI.return_order_book(params)
-    fetch_order_book(state, asks, bids)
+    result = fetch_order_book(state, asks, bids)
+    Map.put(state, :fetch_order_book_result, result)
   end
 
   @doc false

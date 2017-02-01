@@ -13,30 +13,29 @@ defmodule Krasukha do
   def start_wamp_connection, do: Krasukha.WAMP.connect!
 
   @doc false
-  def start_markets do
-    spec = Supervisor.Spec.worker(Krasukha.MarketsGen, [], [restart: :transient])
+  def start_markets(preflight_opts \\ []) do
+    spec = Supervisor.Spec.worker(Krasukha.MarketsGen, [preflight_opts], [restart: :transient])
     Supervisor.start_child(Krasukha.Supervisor, spec)
   end
 
   @doc false
-  def start_markets!(initial_requests \\ [:fetch_ticker, :subscribe_ticker]) do
-    {:ok, pid} = start_markets()
-    init(pid, initial_requests)
+  def start_markets!() do
+    start_markets([:fetch_ticker, :subscribe_ticker])
   end
 
   alias Krasukha.{Helpers.Naming}
 
   @doc false
-  def start_market(currency_pair) do
+  def start_market(currency_pair, preflight_opts \\ []) do
     id = Naming.process_name(currency_pair, :market)
-    spec = Supervisor.Spec.worker(Krasukha.MarketGen, [currency_pair], [id: id, restart: :transient])
+    spec = Supervisor.Spec.worker(Krasukha.MarketGen, [currency_pair, preflight_opts], [id: id, restart: :transient])
     Supervisor.start_child(Krasukha.ExchangeRoutines.Supervisor, spec)
   end
 
   @doc false
-  def start_market!(currency_pair, initial_requests \\ [{:fetch_order_book, [depth: 10]}, :subscribe]) do
-    {:ok, pid} = start_market(currency_pair)
-    init(pid, initial_requests)
+  def start_market!(currency_pair) do
+    preflight_opts = [{:fetch_order_book, [currencyPair: currency_pair, depth: 10]}, :subscribe]
+    start_market(currency_pair, preflight_opts)
   end
 
   @doc false
