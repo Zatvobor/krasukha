@@ -15,7 +15,7 @@ defmodule Krasukha do
   @doc false
   def start_markets(preflight_opts \\ []) do
     spec = Supervisor.Spec.worker(Krasukha.MarketsGen, [preflight_opts], [restart: :transient])
-    Supervisor.start_child(Krasukha.Supervisor, spec)
+    Supervisor.start_child(Krasukha.WAMP.Subscribed.Supervisor, spec)
   end
 
   @doc false
@@ -29,7 +29,7 @@ defmodule Krasukha do
   def start_market(currency_pair, preflight_opts \\ []) do
     id = Naming.process_name(currency_pair, :market)
     spec = Supervisor.Spec.worker(Krasukha.MarketGen, [currency_pair, preflight_opts], [id: id, restart: :transient])
-    Supervisor.start_child(Krasukha.ExchangeRoutines.Supervisor, spec)
+    Supervisor.start_child(Krasukha.WAMP.Subscribed.Supervisor, spec)
   end
 
   @doc false
