@@ -14,7 +14,11 @@ defmodule Krasukha.WAMP do
 
   @doc false
   def connection do
-    Application.get_env(:krasukha, :wamp, %{subscriber: nil, options: nil})
+    pid = case Supervisor.which_children(Spell.Peer.Supervisor) do
+      [{:undefined, peer, :worker, [Spell.Peer]} | _t] -> peer
+      [] -> nil
+    end
+    %{subscriber: pid}
   end
 
   @doc false
@@ -26,12 +30,7 @@ defmodule Krasukha.WAMP do
   @doc false
   def connect!(url \\ url(), options \\ credentials()) do
     :ok = Application.put_env(:spell, :timeout, options[:timeout], [persistent: true])
-
-    {:ok, subscriber} = connect(url, options)
-    environment = %{subscriber: subscriber, options: options}
-    :ok = Application.put_env(:krasukha, :wamp, environment, [persistent: true])
-
-    {:ok , subscriber}
+    connect(url, options)
   end
 
   @doc false

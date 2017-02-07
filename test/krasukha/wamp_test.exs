@@ -10,9 +10,8 @@ defmodule Krasukha.WAMPTest do
   test "url/0", do: assert url()
   test "credentials/0", do: assert credentials()
 
-  test "connection by default" do
-    :ok = Application.delete_env(:krasukha, :wamp)
-    assert connection() == %{subscriber: nil, options: nil}
+  test "connection which doesn't exist" do
+    assert %{subscriber: nil} = connection()
   end
 
   describe "Connection to Push API" do
@@ -24,11 +23,9 @@ defmodule Krasukha.WAMPTest do
 
     @tag [external: true]
     test "connect!/0 and disconnect!/0" do
-      {:ok, _pid} = connect!()
-      %{subscriber: subscriber, options: options} = connection()
-      assert subscriber
-      assert options
-      assert :ok == disconnect!()
+      assert {:ok, pid} = connect!()
+      assert %{subscriber: ^pid} = connection()
+      assert :ok = disconnect!()
     end
   end
 end
