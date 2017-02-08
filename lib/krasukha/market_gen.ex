@@ -149,11 +149,6 @@ defmodule Krasukha.MarketGen do
   import Helpers.String, only: [to_atom: 1, to_float: 1, to_tuple_with_floats: 1]
 
   @doc false
-  def subscribe(%{subscriber: nil} = state) do
-    %{subscriber: subscriber} = WAMP.connection()
-    Map.put(state, :subscriber, subscriber)
-     |> subscribe
-  end
   def subscribe(%{currency_pair: currency_pair, subscriber: subscriber} = state) do
     {:ok, subscription} = WAMP.subscribe(subscriber, currency_pair)
     Map.put(state, :subscription, subscription)

@@ -103,11 +103,6 @@ defmodule Krasukha.MarketsGen do
   # Client API
 
   @doc false
-  def subscribe_ticker(%{subscriber: nil} = state) do
-    %{subscriber: subscriber} = WAMP.connection()
-    Map.put(state, :subscriber, subscriber)
-      |> subscribe_ticker
-  end
   def subscribe_ticker(%{subscriber: subscriber} = state) do
     {:ok, ticker_subscription} = WAMP.subscribe(subscriber, "ticker")
     Map.put(state, :ticker_subscription, ticker_subscription)

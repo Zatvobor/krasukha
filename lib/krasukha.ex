@@ -7,10 +7,15 @@ defmodule Krasukha do
   def start(:normal, _args \\ nil), do: Krasukha.Supervisor.start_link()
 
   @doc false
-  def stop(_state), do: Krasukha.WAMP.disconnect!()
+  def stop(_state) do
+    stop_wamp_connection()
+  end
 
   @doc false
-  def start_wamp_connection, do: Krasukha.WAMP.connect!
+  def start_wamp_connection, do: GenServer.call(Krasukha.WAMPGen, :connect)
+
+  @doc false
+  def stop_wamp_connection, do: Krasukha.WAMP.disconnect!()
 
   @doc false
   def start_markets(preflight_opts \\ []) do
