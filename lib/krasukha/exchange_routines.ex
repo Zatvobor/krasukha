@@ -37,6 +37,7 @@ defmodule Krasukha.ExchangeRoutines do
 
   defp nz(field) when field in [:inifinity], do: field
   defp nz(field) when is_integer(field), do: (field / 1)
+  defp nz(field) when is_float(field), do: field
 
   @doc false
   defmacro is_buy_lowest_possibility(rate, stop_rate, balance, best_amount) do
