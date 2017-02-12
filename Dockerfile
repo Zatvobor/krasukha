@@ -1,6 +1,7 @@
 FROM elixir:1.3.4
 MAINTAINER Zatvobor <http://zatvobor.github.io>
 
+ENV MIX_ENV prod
 RUN mix do local.hex --force, local.rebar --force
 
 RUN apt-get install -y git \
@@ -10,7 +11,7 @@ RUN apt-get install -y git \
 RUN git clone https://github.com/Zatvobor/krasukha.git \
   && cd krasukha \
   && mix do deps.get, compile \
-  && mix test
+  && MIX_ENV=test mix test
 
 EXPOSE 4369
 

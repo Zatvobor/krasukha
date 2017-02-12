@@ -5,21 +5,39 @@ defmodule Krasukha.WAMPGen do
   @moduledoc false
 
   @doc false
-  def start_link do
-    GenServer.start_link(__MODULE__, :ok, [name: __MODULE__])
+  def env_specific_preflight_opts do
+    if Mix.env == :prod, do: [:connect], else: []
   end
 
   @doc false
-  def init(:ok) do
+  def start_link(preflight_opts \\ []) do
+    GenServer.start_link(__MODULE__, preflight_opts, [name: __MODULE__])
+  end
+
+  @doc false
+  def init(preflight_opts) do
     # inject available connection and defaults
-    state = %{wamp_subscribed: nil}
+    state = %{wamp_subscribed: nil, subscriber: nil}
+      # applies initial preflights options
+      |> apply_preflight_opts(preflight_opts)
       |> Map.merge(WAMP.connection)
+
     # fetch subscribed specs which were available before crash
     if specs = Application.get_env(:krasukha, :wamp_subscribed) do
       {:ok, %{state | wamp_subscribed: specs}, 500}
     else
       {:ok, state}
     end
+  end
+
+  @doc false
+  defp apply_preflight_opts(state, []), do: state
+  defp apply_preflight_opts(state, [h | t]) do
+    new_state = case h do
+      {function, args} when is_atom(function) -> apply(__MODULE__, function, [state, args])
+      function when is_atom(function) -> apply(__MODULE__, function, [state])
+    end
+    apply_preflight_opts(new_state, t)
   end
 
   @doc false
@@ -68,12 +86,14 @@ defmodule Krasukha.WAMPGen do
       end
   end
 
-  defp connect(state) do
+  @doc false
+  def connect(state) do
     {:ok, pid} = WAMP.connect!
     %{state | subscriber: pid}
   end
 
-  defp disconnect(%{subscriber: pid} = state) do
+  @doc false
+  def disconnect(%{subscriber: pid} = state) do
     :ok = WAMP.disconnect(pid)
     %{state | subscriber: nil}
   end

@@ -17,7 +17,7 @@ defmodule Krasukha.WAMP.Supervisor do
     import Supervisor.Spec, only: [worker: 3, supervisor: 3]
     [
       worker(
-        Krasukha.WAMPGen, [], restart: :permanent
+        Krasukha.WAMPGen, [Krasukha.WAMPGen.env_specific_preflight_opts()], restart: :permanent
       ),
       supervisor(
         Supervisor,
