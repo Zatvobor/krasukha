@@ -14,7 +14,7 @@ defmodule Krasukha.ExchangeRoutines do
   @doc false
   def start(agent, strategy, params) do
     state = init(agent, params)
-    spawn(Helpers.Routine, :start_routine, [__MODULE__, strategy, state])
+    :proc_lib.spawn(Helpers.Routine, :start_routine, [self(), __MODULE__, strategy, state])
   end
 
   @doc false
@@ -38,6 +38,9 @@ defmodule Krasukha.ExchangeRoutines do
   defp nz(field) when field in [:inifinity], do: field
   defp nz(field) when is_integer(field), do: (field / 1)
   defp nz(field) when is_float(field), do: field
+
+  @doc false
+  defdelegate do_nothing(state), to: Helpers.Routine
 
   @doc false
   defmacro is_buy_lowest_possibility(rate, stop_rate, balance, best_amount) do

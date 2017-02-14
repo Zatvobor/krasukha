@@ -14,7 +14,7 @@ defmodule Krasukha.LendingRoutines do
   @doc false
   def start(agent, strategy, params) do
     state = init(agent, params)
-    spawn(Helpers.Routine, :start_routine, [__MODULE__, strategy, state])
+    :proc_lib.spawn(Helpers.Routine, :start_routine, [self(), __MODULE__, strategy, state])
   end
 
   @doc false
@@ -34,6 +34,9 @@ defmodule Krasukha.LendingRoutines do
       |> Map.merge(%{currency_lending: Helpers.Naming.process_name(currency, :lending)})
       |> Map.merge(%{agent: agent})
   end
+
+  @doc false
+  defdelegate do_nothing(state), to: Helpers.Routine
 
   @doc false
   def cancel_open_loan_offers(%{agent: agent, currency: currency} = params) do
