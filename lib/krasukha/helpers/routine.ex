@@ -36,6 +36,9 @@ defmodule Krasukha.Helpers.Routine do
   end
 
   @doc false
+  def satoshi, do: 0.00000001
+
+  @doc false
   def default_params() do
     %{}
       |> Map.merge(%{fulfill_immediately: false})

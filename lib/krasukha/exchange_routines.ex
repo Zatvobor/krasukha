@@ -20,22 +20,25 @@ defmodule Krasukha.ExchangeRoutines do
   @doc false
   def default_params() do
     Helpers.Routine.default_params()
-      # known options for strategies like `buy_lowest/sell_highest`
-      |> Map.merge(%{stop_rate: :infinity, stop_limit: :infinity, stop_limit_acc: 0.0})
+      # known options for strategies like `buy_lowest/place_highest/sell_highest/place_lowest`
+      |> Map.merge(%{stop_rate: :infinity, stop_limit: :infinity, limit_amount: :inifinity, stop_limit_acc: 0.0})
+      # known options for strategies like `place_highest/place_lowest`
+      |> Map.merge(%{spread_rate: Helpers.Routine.satoshi()})
       |> Map.merge(%{fillOrKill: 0, immediateOrCancel: 0, postOnly: 0})
   end
 
   @doc false
-  def init(agent, %{currency_pair: currency_pair, limit_amount: limit_amount} = params) do
-    default_params()
-      |> Map.merge(params)
-      |> Map.merge(%{stop_rate: nz(params.stop_rate), stop_limit: nz(params.stop_limit)})
-      |> Map.merge(%{limit_amount: nz(limit_amount)})
+  def init(agent, %{currency_pair: currency_pair} = params) do
+    params = Map.merge(default_params(), params)
+    params
+      |> Map.merge(%{spread_rate: nz(params.spread_rate), stop_rate: nz(params.stop_rate)})
+      |> Map.merge(%{limit_amount: nz(params.limit_amount), stop_limit: nz(params.stop_limit)})
       |> Map.merge(%{market: Helpers.Naming.process_name(currency_pair, :market)})
       |> Map.merge(%{agent: agent})
   end
 
-  defp nz(field) when field in [:inifinity], do: field
+  @doc false
+  defp nz(field) when field in [:infinity], do: field
   defp nz(field) when is_integer(field), do: (field / 1)
   defp nz(field) when is_float(field), do: field
 
@@ -43,45 +46,50 @@ defmodule Krasukha.ExchangeRoutines do
   defdelegate do_nothing(state), to: Helpers.Routine
 
   @doc false
-  defmacro is_buy_lowest_possibility(rate, stop_rate, balance, best_amount) do
-    quote do
-      (unquote(rate) < unquote(stop_rate)) and (unquote(balance) > unquote(rate) * unquote(best_amount))
-    end
+  def buy_lowest(params) do
+    {_tab, _key, seed} = lookup(:first, :asks, params)
+    place_buy_order(seed, params)
   end
 
   @doc false
-  def buy_lowest(%{agent: agent, currency_pair: currency_pair, market: market} = params) do
-    tab = GenServer.call(market, {:book_tid, :asks})
-    key = :ets.first(tab)
+  def place_highest(%{limit_amount: limit_amount, spread_rate: spread_rate} = params) when is_float(limit_amount) do
+    {_tab, _key, [{rate, _amount}] = _seed} = lookup(:last, :bids, params)
+    seed = [{rate + spread_rate, limit_amount}]
+    place_buy_order(seed, params)
+  end
+
+  @doc false
+  def place_buy_order(seed, %{agent: agent, currency_pair: currency_pair} = params) do
     extended_params = Map.merge(params, %{currency: Helpers.Naming.head_currency_pair(currency_pair)})
     with :ok <- check_stop_limit(params),
-      possibility = find_possibility_for_order(tab, key, extended_params),
-      {balance, best_amount, rate, stop_rate, order} when is_buy_lowest_possibility(rate, stop_rate, balance, best_amount) <- possibility,
+      possibility = find_possibility_for_order(seed, extended_params),
+      {balance, best_amount, rate, stop_rate, order} when (rate < stop_rate) and (balance > (rate * best_amount)) <- possibility,
       {:ok, 200, response} <- HTTP.PrivateAPI.buy(agent, order) do
-        # %{orderNumber: "24213262617", resultingTrades: [%{amount: "15.00000000", date: "2017-01-30 17:52:44", rate: "0.00000696", total: "0.00010440", tradeID: "1600555", type: "buy"}]}
-        # %{orderNumber: "24212832048", resultingTrades: []}
         response |> inspect |> Logger.info
         accumulate_stop_limit(best_amount, params)
       end
   end
 
   @doc false
-  defmacro is_sell_highest_possibility(rate, stop_rate, balance, best_amount) do
-    quote do
-      (unquote(rate) > unquote(stop_rate) or unquote(stop_rate) == :infinity) and (unquote(balance) > unquote(best_amount))
-    end
+  def sell_highest(params) do
+    {_tab, _key, seed} = lookup(:last, :bids, params)
+    place_sell_order(seed, params)
   end
 
   @doc false
-  def sell_highest(%{agent: agent, currency_pair: currency_pair, market: market} = params) do
-    tab = GenServer.call(market, {:book_tid, :bids})
-    key = :ets.last(tab)
+  def place_lowest(%{limit_amount: limit_amount, spread_rate: spread_rate}= params) when is_float(limit_amount) do
+    {_tab, _key, [{rate, _amount}] = _seed} = lookup(:first, :asks, params)
+    seed = [{rate - spread_rate, limit_amount}]
+    place_sell_order(seed, params)
+  end
+
+  @doc false
+  def place_sell_order(seed, %{agent: agent, currency_pair: currency_pair} = params) do
     extended_params = Map.merge(params, %{currency: Helpers.Naming.tail_currency_pair(currency_pair)})
     with :ok <- check_stop_limit(params),
-      possibility = find_possibility_for_order(tab, key, extended_params),
-      {balance, best_amount, rate, stop_rate, order} when is_sell_highest_possibility(rate, stop_rate, balance, best_amount) <- possibility,
+      possibility = find_possibility_for_order(seed, extended_params),
+      {balance, best_amount, rate, stop_rate, order} when (rate > stop_rate or stop_rate == :infinity) and (balance > best_amount) <- possibility,
       {:ok, 200, response} <- HTTP.PrivateAPI.sell(agent, order) do
-        # %{}
         response |> inspect |> Logger.info
         accumulate_stop_limit(best_amount, params)
       end
@@ -95,14 +103,13 @@ defmodule Krasukha.ExchangeRoutines do
   @doc false
   def accumulate_stop_limit(_best_amount, %{stop_limit: :infinity}), do: :ok
   def accumulate_stop_limit(best_amount, %{stop_limit_acc: stop_limit_acc} = params) do
-    %{params | stop_limit_acc: stop_limit_acc + best_amount}
+    %{params | stop_limit_acc: (stop_limit_acc + best_amount)}
   end
 
   @doc false
-  defp find_possibility_for_order(_tab, :"$end_of_table", _params), do: false
-  defp find_possibility_for_order(tab, key, %{agent: agent, currency: currency, currency_pair: currency_pair, stop_rate: stop_rate, limit_amount: limit_amount} = params) do
+  defp find_possibility_for_order([], _params), do: false
+  defp find_possibility_for_order([{rate, amount}], %{agent: agent, currency: currency, currency_pair: currency_pair, stop_rate: stop_rate, limit_amount: limit_amount} = params) do
     with balance when is_number(balance) <- Krasukha.SecretAgent.account_balance!(agent, :exchange, currency) do
-      [{rate, amount}] = :ets.lookup(tab, key)
       best_amount = best_amount(amount, limit_amount)
       order = params
         |> Map.take([:fillOrKill, :immediateOrCancel, :postOnly])
@@ -113,6 +120,16 @@ defmodule Krasukha.ExchangeRoutines do
     end
   end
 
-  defp best_amount(available, provided) when available <= provided, do: available
-  defp best_amount(available, provided) when available >= provided, do: provided
+  @doc false
+  defp best_amount(available, limit_amount) when available <= limit_amount, do: available
+  defp best_amount(available, limit_amount) when available >= limit_amount, do: limit_amount
+
+  @doc false
+  defp lookup(what, type, %{market: market}), do: lookup(what, type, market)
+  defp lookup(what, type, market) do
+    tab = GenServer.call(market, {:book_tid, type})
+    key = apply(:ets, what, [tab])
+    seed = :ets.lookup(tab, key)
+    {tab, key, seed}
+  end
 end
