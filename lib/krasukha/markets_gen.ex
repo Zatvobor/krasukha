@@ -82,9 +82,9 @@ defmodule Krasukha.MarketsGen do
   end
 
   @doc false
-  def handle_call(:unsubscribe_ticker, _from, %{subscriber: subscriber, ticker_subscription: ticker_subscription} = state) do
-    unsubscribed = WAMP.unsubscribe(subscriber, ticker_subscription)
-    {:reply, unsubscribed, Map.delete(state, :ticker_subscription)}
+  def handle_call(:unsubscribe_ticker, _from, state) do
+    new_state = unsubscribe_ticker(state)
+    {:reply, new_state.unsubscribed, new_state}
   end
 
   @doc false
@@ -95,8 +95,7 @@ defmodule Krasukha.MarketsGen do
 
   @doc false
   def terminate(_reason, state) do
-    if state[:ticker_subscription], do: GenServer.call(self, :unsubscribe_ticker)
-    :ok
+    with subscribe_ticker when is_integer(subscribe_ticker) <- state[:ticker_subscription], do: unsubscribe_ticker(state)
   end
 
 
@@ -106,6 +105,14 @@ defmodule Krasukha.MarketsGen do
   def subscribe_ticker(%{subscriber: subscriber} = state) do
     {:ok, ticker_subscription} = WAMP.subscribe(subscriber, "ticker")
     Map.put(state, :ticker_subscription, ticker_subscription)
+    |> Map.delete(:unsubscribed)
+  end
+
+  @doc false
+  def unsubscribe_ticker(%{subscriber: subscriber, ticker_subscription: ticker_subscription} = state) do
+    unsubscribed = WAMP.unsubscribe(subscriber, ticker_subscription)
+    Map.delete(state, :ticker_subscription)
+    |> Map.put(:unsubscribed, unsubscribed)
   end
 
   @doc false
