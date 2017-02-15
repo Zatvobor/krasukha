@@ -120,9 +120,9 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def handle_call(:unsubscribe, _from, %{subscriber: subscriber, subscription: subscription} = state) do
-    unsubscribed = WAMP.unsubscribe(subscriber, subscription)
-    {:reply, unsubscribed, Map.delete(state, :subscription)}
+  def handle_call(:unsubscribe, _from, state) do
+    new_state = unsubscribe(state)
+    {:reply, new_state.unsubscribed, new_state}
   end
 
   @doc false
@@ -139,8 +139,7 @@ defmodule Krasukha.MarketGen do
 
   @doc false
   def terminate(_reason, state) do
-    if state[:subscription], do: GenServer.call(self, :unsubscribe)
-    :ok
+    with subscription when is_integer(subscription) <- state[:subscription], do: unsubscribe(state)
   end
 
 
@@ -152,6 +151,14 @@ defmodule Krasukha.MarketGen do
   def subscribe(%{currency_pair: currency_pair, subscriber: subscriber} = state) do
     {:ok, subscription} = WAMP.subscribe(subscriber, currency_pair)
     Map.put(state, :subscription, subscription)
+    |> Map.delete(:unsubscribed)
+  end
+
+  @doc false
+  def unsubscribe(%{subscriber: subscriber, subscription: subscription} = state) do
+    unsubscribed = WAMP.unsubscribe(subscriber, subscription)
+    Map.delete(state, :subscription)
+    |> Map.put(:unsubscribed, unsubscribed)
   end
 
   @doc false
