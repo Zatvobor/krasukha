@@ -5,15 +5,11 @@ defmodule Krasukha do
 
   @doc false
   def start(:normal, _args \\ nil), do: Krasukha.Supervisor.start_link()
-
   @doc false
-  def stop(_state) do
-    stop_wamp_connection()
-  end
+  def stop(_state), do: stop_wamp_connection()
 
   @doc false
   def start_wamp_connection, do: GenServer.call(Krasukha.WAMPGen, :connect)
-
   @doc false
   def stop_wamp_connection, do: Krasukha.WAMP.disconnect!()
 
@@ -49,7 +45,6 @@ defmodule Krasukha do
     spec = Supervisor.Spec.worker(Krasukha.LendingGen, [currency], [id: id, restart: :transient])
     Supervisor.start_child(Krasukha.LendingRoutines.Supervisor, spec)
   end
-
   @doc false
   def start_lending!(currency, update_loan_orders_every_sec \\ 60) do
     {:ok, pid} = start_lending(currency)
@@ -61,7 +56,6 @@ defmodule Krasukha do
   def start_lending_routine(agent, strategy, params) do
     start_routine(Krasukha.LendingRoutines, agent, strategy, params)
   end
-
   @doc false
   def start_exchange_routine(agent, strategy, params) do
     start_routine(Krasukha.ExchangeRoutines, agent, strategy, params)
