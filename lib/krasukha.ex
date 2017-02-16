@@ -40,16 +40,15 @@ defmodule Krasukha do
   end
 
   @doc false
-  def start_lending(currency) do
+  def start_lending(currency, preflight_opts \\ []) do
     id = Naming.process_name(currency, :lending)
-    spec = Supervisor.Spec.worker(Krasukha.LendingGen, [currency], [id: id, restart: :transient])
+    spec = Supervisor.Spec.worker(Krasukha.LendingGen, [currency, preflight_opts], [id: id, restart: :transient])
     Supervisor.start_child(Krasukha.LendingRoutines.Supervisor, spec)
   end
   @doc false
   def start_lending!(currency, update_loan_orders_every_sec \\ 60) do
-    {:ok, pid} = start_lending(currency)
-    initial_requests = [{:update_loan_orders, [every: update_loan_orders_every_sec]}]
-    init(pid, initial_requests)
+    preflight_opts = [{:update_loan_orders, [every: update_loan_orders_every_sec]}]
+    start_lending(currency, preflight_opts)
   end
 
   @doc false
@@ -76,11 +75,5 @@ defmodule Krasukha do
     id = Naming.monotonic_id()
     spec = Supervisor.Spec.worker(Krasukha.SecretAgent, [key, secret, id], [id: id, restart: :permanent])
     Supervisor.start_child(Krasukha.SecretAgent.Supervisor, spec)
-  end
-
-
-  defp init(pid, initial_requests) do
-    responses = Enum.map(initial_requests, fn(request) -> GenServer.call(pid, request) end)
-    {:ok, pid, responses}
   end
 end

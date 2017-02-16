@@ -23,9 +23,10 @@ defmodule Krasukha.LendingRoutinesTest do
 
   describe "find_offer_object/1 in context of" do
     setup do
-      %{orders_tids: %{offers_tid: offers_tid}} = initial_state = LendingGen.__create_loan_orders_tables()
+      %{orders_tids: %{offers_tid: offers_tid} = orders_tids} = LendingGen.__create_loan_orders_tables()
       :true = :ets.insert(offers_tid, [{1},{2},{3}])
-      {:ok, _} = LendingGen.start_link("USDT", initial_state)
+      {:ok, pid} = LendingGen.start_link("USDT")
+      :ok = GenServer.call(pid, {:orders_tids, orders_tids})
       {:ok, [currency: "USDT", currency_lending: :usdt_lending, fetch_loan_orders: false, offers_tid: offers_tid]}
     end
 

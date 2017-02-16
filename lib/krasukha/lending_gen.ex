@@ -6,19 +6,31 @@ defmodule Krasukha.LendingGen do
   @moduledoc false
 
   @doc false
-  def start_link(currency, initial_state \\ %{}) when is_binary(currency) do
+  def start_link(currency, preflight_opts \\ []) when is_binary(currency) do
     options = [name: Helpers.Naming.process_name(currency, :lending)]
-    GenServer.start_link(__MODULE__, [currency, initial_state], options)
+    GenServer.start_link(__MODULE__, [currency, preflight_opts], options)
   end
 
   @doc false
-  def init([currency, initial_state]) do
-    state = initial_state
+  def init([currency, preflight_opts]) do
+    state = %{}
       |> Map.merge(%{currency: currency})
-    state = if(initial_state[:orders_tids], do: %{orders_tids: initial_state.orders_tids}, else: __create_loan_orders_tables(currency))
-      |> Map.merge(state)
+      |> Map.merge(__create_loan_orders_tables(currency))
+
+    # applies preflight setup
+    state = apply_preflight_opts(state, preflight_opts)
 
     {:ok, state}
+  end
+
+  @doc false
+  defp apply_preflight_opts(state, []), do: state
+  defp apply_preflight_opts(state, [h | t]) do
+    new_state = case h do
+      {function, args} when is_atom(function) -> apply(__MODULE__, function, [state, args])
+      function when is_atom(function) -> apply(__MODULE__, function, [state])
+    end
+    apply_preflight_opts(new_state, t)
   end
 
   @doc false
@@ -39,6 +51,11 @@ defmodule Krasukha.LendingGen do
   @doc false
   def handle_call(:orders_tids, _from, %{orders_tids: %{offers_tid: offers_tid, demands_tid: demands_tid}} = state) do
     {:reply, [offers_tid, demands_tid], state}
+  end
+
+  @doc false
+  def handle_call({:orders_tids, orders_tids}, _from, state) do
+    {:reply, :ok, %{state | orders_tids: orders_tids}}
   end
 
   @doc false
@@ -76,9 +93,9 @@ defmodule Krasukha.LendingGen do
   end
 
   @doc false
-  def handle_call({:update_loan_orders, [every: seconds]}, _from, state) do
-    pid = spawn(__MODULE__, :loan_offers_fetcher, [self, seconds * 1000])
-    {:reply, :ok, Map.put(state, :fetcher, pid)}
+  def handle_call({:update_loan_orders, [every: _seconds] = params}, _from, state) do
+    new_state = update_loan_orders(state, params)
+    {:reply, new_state.fetcher, new_state}
   end
 
   @doc false
@@ -108,6 +125,11 @@ defmodule Krasukha.LendingGen do
 
 
   # Client API
+
+  def update_loan_orders(state, [every: seconds]) do
+    pid = spawn(__MODULE__, :loan_offers_fetcher, [self(), seconds * 1000])
+    Map.merge(state, %{fetcher: pid})
+  end
 
   def fetch_loan_orders(%{currency: currency} = state) do
     {:ok, 200, %{offers: offers, demands: demands}} = HTTP.PublicAPI.return_loan_orders(currency)
