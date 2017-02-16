@@ -38,6 +38,12 @@ defmodule Krasukha.Helpers.Routine do
   end
 
   @doc false
+  def nz(field) when field in [:infinity], do: field
+  def nz(field) when is_integer(field), do: (field / 1)
+  def nz(field) when is_float(field), do: field
+
+
+  @doc false
   def sleep_time_timeout(%{sleep_time_inactive: sleep_time_inactive, sleep_time_inactive_seed: sleep_time_inactive_seed}) do
     (:rand.uniform(sleep_time_inactive_seed) * 1000) + (sleep_time_inactive * 1000) # getting timeout in milliseconds
   end

@@ -23,17 +23,21 @@ defmodule Krasukha.LendingRoutines do
       # known options for strategies like `available_balance_to_gap_position`
       |> Map.merge(%{duration: 2, auto_renew: 0, gap_top_position: 10}) # gap_bottom_position
       |> Map.merge(%{fetch_loan_orders: false})
+      |> Map.merge(%{stop_rate: :infinity})
       # known options for strategy `cancel_open_loan_offers`
       |> Map.merge(%{after_time_inactive: 14400}) # in seconds (4 hours)
   end
 
   @doc false
   def init(agent, %{currency: currency} = params) do
-    default_params()
-      |> Map.merge(params)
+    params = Map.merge(default_params(), params)
+    params
       |> Map.merge(%{currency_lending: Helpers.Naming.process_name(currency, :lending)})
+      |> Map.merge(%{stop_rate: nz(params.stop_rate)})
       |> Map.merge(%{agent: agent})
   end
+
+  defdelegate nz(field), to: Helpers.Routine
 
   @doc false
   defdelegate do_nothing(state), to: Helpers.Routine
@@ -65,12 +69,16 @@ defmodule Krasukha.LendingRoutines do
   end
 
   @doc false
-  def available_balance_to_gap_position(%{agent: agent, currency: currency} = params) do
+  def available_balance_to_gap_position(%{agent: agent, currency: currency, stop_rate: stop_rate} = params) do
     with balance when is_number(balance) <- Krasukha.SecretAgent.account_balance!(agent, :lending, currency) do
       {rate, _, _, _} = find_offer_object(params)
-      rate = Helpers.String.float_to_binary(rate)
-      balance = Helpers.String.float_to_binary(balance)
-      create_loan_offer(rate, balance, params)
+      cond do
+        stop_rate == :infinity ->
+          create_loan_offer(rate, balance, params)
+        rate > stop_rate ->
+          create_loan_offer(rate, balance, params)
+        true -> :ok
+      end
     end
   end
 
@@ -113,9 +121,8 @@ defmodule Krasukha.LendingRoutines do
 
   @doc false
   def create_loan_offer(rate, amount, %{agent: agent, currency: currency, duration: duration, auto_renew: auto_renew}) do
-    params = [currency: currency, lendingRate: rate, amount: amount, duration: duration, autoRenew: auto_renew]
+    params = [currency: currency, lendingRate: Helpers.String.float_to_binary(rate), amount: Helpers.String.float_to_binary(amount), duration: duration, autoRenew: auto_renew]
     {:ok, 200, response} = HTTP.PrivateAPI.create_loan_offer(agent, params)
-    # %{message: "Loan order placed.", orderID: 136543484, success: 1}
     response |> inspect |> Logger.info
   end
 end
