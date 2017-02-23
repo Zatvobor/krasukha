@@ -37,8 +37,8 @@ defmodule Krasukha.LendingRoutines do
       |> Map.merge(%{agent: agent})
   end
 
+  @doc false
   defdelegate nz(field), to: Helpers.Routine
-
   @doc false
   defdelegate do_nothing(state), to: Helpers.Routine
 

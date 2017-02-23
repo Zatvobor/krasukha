@@ -21,7 +21,7 @@ defmodule Krasukha.ExchangeRoutines do
   def default_params() do
     Helpers.Routine.default_params()
       # known options for strategies like `buy_lowest/place_highest/sell_highest/place_lowest`
-      |> Map.merge(%{stop_rate: :infinity, stop_limit: :infinity, limit_amount: :inifinity, stop_limit_acc: 0.0})
+      |> Map.merge(%{stop_rate: :infinity, stop_limit: :infinity, limit_amount: :infinity, stop_limit_acc: 0.0})
       # known options for strategies like `place_highest/place_lowest`
       |> Map.merge(%{spread_rate: Helpers.Routine.satoshi()})
       |> Map.merge(%{fillOrKill: 0, immediateOrCancel: 0, postOnly: 0})
@@ -38,10 +38,7 @@ defmodule Krasukha.ExchangeRoutines do
   end
 
   @doc false
-  defp nz(field) when field in [:infinity], do: field
-  defp nz(field) when is_integer(field), do: (field / 1)
-  defp nz(field) when is_float(field), do: field
-
+  defdelegate nz(field), to: Helpers.Routine
   @doc false
   defdelegate do_nothing(state), to: Helpers.Routine
 
