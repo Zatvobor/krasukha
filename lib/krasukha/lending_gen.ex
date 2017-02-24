@@ -18,20 +18,13 @@ defmodule Krasukha.LendingGen do
       |> Map.merge(__create_loan_orders_tables(currency))
 
     # applies preflight setup
-    state = apply_preflight_opts(state, preflight_opts)
+    state = apply_preflight_opts(state, preflight_opts, __MODULE__)
 
     {:ok, state}
   end
 
   @doc false
-  defp apply_preflight_opts(state, []), do: state
-  defp apply_preflight_opts(state, [h | t]) do
-    new_state = case h do
-      {function, args} when is_atom(function) -> apply(__MODULE__, function, [state, args])
-      function when is_atom(function) -> apply(__MODULE__, function, [state])
-    end
-    apply_preflight_opts(new_state, t)
-  end
+  defdelegate apply_preflight_opts(state, preflight_opts, mod), to: Helpers.Gen
 
   @doc false
   def __create_loan_orders_tables(currency \\ "untitled") do

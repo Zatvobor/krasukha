@@ -1,4 +1,4 @@
-alias Krasukha.{WAMP}
+alias Krasukha.{WAMP, Helpers}
 
 defmodule Krasukha.WAMPGen do
   use GenServer
@@ -19,7 +19,7 @@ defmodule Krasukha.WAMPGen do
     # inject available connection and defaults
     state = %{wamp_subscribed: nil, subscriber: nil}
       # applies initial preflights options
-      |> apply_preflight_opts(preflight_opts)
+      |> apply_preflight_opts(preflight_opts, __MODULE__)
       |> Map.merge(WAMP.connection)
 
     # fetch subscribed specs which were available before crash
@@ -31,14 +31,7 @@ defmodule Krasukha.WAMPGen do
   end
 
   @doc false
-  defp apply_preflight_opts(state, []), do: state
-  defp apply_preflight_opts(state, [h | t]) do
-    new_state = case h do
-      {function, args} when is_atom(function) -> apply(__MODULE__, function, [state, args])
-      function when is_atom(function) -> apply(__MODULE__, function, [state])
-    end
-    apply_preflight_opts(new_state, t)
-  end
+  defdelegate apply_preflight_opts(state, preflight_opts, mod), to: Helpers.Gen
 
   @doc false
   def handle_call(:connect, _from, %{subscriber: nil} = state) do
