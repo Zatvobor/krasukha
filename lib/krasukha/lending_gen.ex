@@ -98,6 +98,9 @@ defmodule Krasukha.LendingGen do
   end
 
   @doc false
+  defdelegate handle_info(suspend_or_resume, state), to: Helpers.Gen
+
+  @doc false
   def loan_offers_fetcher(server, timeout) do
     ref = Process.monitor(server)
     Process.flag(:trap_exit, true)

@@ -12,10 +12,13 @@ defmodule Krasukha.Helpers.Routine do
   @doc false
   def loop(mod, strategy, params, parent) when is_atom(strategy) and is_pid(parent) do
     receive do
-      {:EXIT, _, reason} when reason in [:normal, :shutdown] -> :ok
-      {:system, from, request} -> :sys.handle_system_msg(request, from, parent, __MODULE__, [], [mod, strategy, params])
+      {:system, from, request} ->
+        :sys.handle_system_msg(request, from, parent, __MODULE__, [], [mod, strategy, params])
+      {:EXIT, _from, reason} when reason in [:normal, :shutdown] ->
+        exit(reason)
     after
-      sleep_time_timeout(params) -> call(mod, strategy, params, parent)
+      sleep_time_timeout(params) ->
+        call(mod, strategy, params, parent)
     end
   end
 
@@ -49,7 +52,7 @@ defmodule Krasukha.Helpers.Routine do
   end
 
   @doc false
-  def do_nothing(_state), do: :ok
+  def do_nothing(_state), do: Logger.info("doing nothing")
 
   @doc false
   def system_continue(parent, _debug, [mod, strategy, params]) do

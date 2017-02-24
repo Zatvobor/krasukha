@@ -131,6 +131,9 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
+  defdelegate handle_info(suspend_or_resume, state), to: Helpers.Gen
+
+  @doc false
   def terminate(_reason, state) do
     with subscription when is_integer(subscription) <- state[:subscription], do: unsubscribe(state)
   end
