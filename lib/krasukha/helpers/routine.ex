@@ -12,6 +12,8 @@ defmodule Krasukha.Helpers.Routine do
   @doc false
   def loop(mod, strategy, params, parent) when is_atom(strategy) and is_pid(parent) do
     receive do
+      {:adjust, request} ->
+        loop(mod, strategy, Enum.into(request, params), parent)
       {:system, from, request} ->
         :sys.handle_system_msg(request, from, parent, __MODULE__, [], [mod, strategy, params])
       {:EXIT, _from, reason} when reason in [:normal, :shutdown] ->
