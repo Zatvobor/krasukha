@@ -19,7 +19,6 @@ defmodule Krasukha.MarketGen do
       |> Map.merge(%{currency_pair: currency_pair, subscriber: subscriber})
       |> Map.merge(__create_books_table(currency_pair))
       |> Map.merge(__create_history_table(currency_pair))
-      |> Map.merge(__create_gen_event())
 
     # applies preflight setup
     state = apply_preflight_opts(state, preflight_opts, __MODULE__)
@@ -54,6 +53,11 @@ defmodule Krasukha.MarketGen do
 
   # Server (callbacks)
 
+  @doc false
+  def handle_call(:create_event_manager, _from, state) do
+    new_state = create_event_manager(state)
+    {:reply, new_state.event_manager, new_state}
+  end
   @doc false
   def handle_call(:event_manager, _from, %{event_manager: event_manager} = state) do
     {:reply, event_manager, state}
@@ -96,7 +100,7 @@ defmodule Krasukha.MarketGen do
 
   @doc false
   def handle_call(:clean_order_book, _from, %{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}, history_tid: history_tid} = state) do
-    Enum.each([asks_book_tid, bids_book_tid, history_tid], fn(tid) -> :true = :ets.delete_all_objects(tid) end)
+    for tid <- [asks_book_tid, bids_book_tid, history_tid], do: :true = :ets.delete_all_objects(tid)
     {:reply, :ok, state}
   end
 
@@ -144,6 +148,12 @@ defmodule Krasukha.MarketGen do
   import Helpers.String, only: [to_atom: 1, to_float: 1, to_tuple_with_floats: 1]
 
   @doc false
+  def create_event_manager(state) do
+    {:ok, event_manager} = GenEvent.start_link()
+    Map.merge(state, %{event_manager: event_manager})
+  end
+
+  @doc false
   def subscribe(%{currency_pair: currency_pair, subscriber: subscriber} = state) do
     {:ok, subscription} = WAMP.subscribe(subscriber, currency_pair)
     Map.put(state, :subscription, subscription)
@@ -167,53 +177,43 @@ defmodule Krasukha.MarketGen do
   @doc false
   def fetch_order_book(%{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}} = state, asks, bids) do
     flow = [{asks, asks_book_tid}, {bids, bids_book_tid}]
-    Enum.each(flow, fn({records, tid}) ->
+    for {records, tid} <- flow do
       objects = Enum.map(records, fn(record) -> to_tuple_with_floats(record) end)
       :ok = notify(state, {:fetch_order_book, objects})
       :true = :ets.insert(tid, objects)
-    end)
+    end
     :ok
   end
 
   @doc false
   def update_order_book(state, [_, _, _, data, _seq]) when is_list(data) do
-    Enum.each(data, fn(action) -> update_order_book(state, action) end)
+    for action <- data, do: update_order_book(state, action)
     :ok
   end
 
   @doc false
   def update_order_book(state, %{"data" => data, "type" => "orderBookModify"}) do
-    tid = book_tid(state, data["type"])
     object = to_tuple_with_floats(data)
     :ok = notify(state, {:update_order_book, :orderBookModify, object})
-    :true = :ets.insert(tid, object)
+    :true = book_tid(state, data["type"])
+      |> :ets.insert(object)
   end
 
   @doc false
   def update_order_book(state, %{"data" => data, "type" => "orderBookRemove"}) do
-    tid = book_tid(state, data["type"])
     key = to_float(data["rate"])
     object = to_tuple_with_floats(data)
     :ok = notify(state, {:update_order_book, :orderBookRemove, object})
-    :true = :ets.delete(tid, key)
+    :true = book_tid(state, data["type"])
+      |> :ets.delete(key)
   end
 
   @doc false
   def update_order_book(state, %{"data" => data, "type" => "newTrade"}) do
-    # update order book
-    tid = book_tid(state, data["type"])
-    case :ets.lookup(tid, to_float(data["rate"])) do
-      [{rate, amount}] ->
-        object = {rate, (amount - to_float(data["amount"]))}
-        :ok = notify(state, {:update_order_book, :newTrade, object})
-        :true = :ets.insert(tid, object)
-      [] -> :ok #do nothing
-    end
-    # update trading history
-    tid = history_tid(state)
     object = {data["date"], to_atom(data["type"]), to_float(data["rate"]), to_float(data["amount"]), to_float(data["total"]), data["tradeID"]}
     :ok = notify(state, {:update_order_history, object})
-    :true = :ets.insert(tid, object)
+    :true = history_tid(state)
+      |> :ets.insert(object)
   end
 
   defp book_tid(%{book_tids: %{asks_book_tid: asks_book_tid}}, type) when type in [:asks, "ask", "buy"], do: asks_book_tid

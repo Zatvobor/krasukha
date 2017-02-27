@@ -21,7 +21,7 @@ defmodule Krasukha.MarketGenTest do
 
   describe "event manager" do
     test "event_manager", %{server: pid} do
-      event_manager = GenServer.call(pid, :event_manager)
+      event_manager = GenServer.call(pid, :create_event_manager)
       assert Process.alive?(event_manager)
     end
   end
@@ -239,14 +239,6 @@ defmodule Krasukha.MarketGenTest do
 
       assert :ets.info(tid, :size) == 0
       assert :ets.lookup(tid, 0.00000110) == []
-    end
-
-    test "update_order_book/2 modifies amount in existing slots", %{book_tids: %{bids_book_tid: tid}} = state do
-      assert :true = :ets.insert(tid, {0.00000110, 20.15})
-      assert :ok = MarketGen.update_order_book(state, @message)
-
-      assert :ets.info(tid, :size) == 1
-      assert :ets.lookup(tid, 0.00000110) == [{0.00000110, 10.12}]
     end
 
     test "update_order_book/2 notifies object over GenEvent", %{book_tids: %{bids_book_tid: tid}} = state do

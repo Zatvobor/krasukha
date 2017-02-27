@@ -35,7 +35,7 @@ defmodule Krasukha do
 
   @doc false
   def start_market!(currency_pair) do
-    preflight_opts = [{:fetch_order_book, [currencyPair: currency_pair, depth: 10]}, :subscribe]
+    preflight_opts = [:subscribe]
     start_market(currency_pair, preflight_opts)
   end
 
