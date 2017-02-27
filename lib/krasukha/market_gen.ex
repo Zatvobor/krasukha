@@ -12,10 +12,16 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
+  def default_params() do
+    %{}
+      |> Map.merge(%{order_book_depth: :infinity})
+  end
+
+  @doc false
   def init([currency_pair, preflight_opts]) do
     %{subscriber: subscriber} = WAMP.connection()
 
-    state = %{}
+    state = default_params()
       |> Map.merge(%{currency_pair: currency_pair, subscriber: subscriber})
       |> Map.merge(__create_books_table(currency_pair))
       |> Map.merge(__create_history_table(currency_pair))
@@ -99,9 +105,14 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def handle_call(:clean_order_book, _from, %{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}, history_tid: history_tid} = state) do
-    for tid <- [asks_book_tid, bids_book_tid, history_tid], do: :true = :ets.delete_all_objects(tid)
-    {:reply, :ok, state}
+  def handle_call(:clean_order_book, _from, state) do
+    new_state = clean_order_book(state)
+    {:reply, :ok, new_state}
+  end
+
+  @doc false
+  def handle_call({:order_book_depth, depth}, _from, state) do
+    {:reply, :ok, %{state | order_book_depth: depth}}
   end
 
   @doc false
@@ -129,7 +140,18 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def handle_info({_module, _from, %{args: args}}, state) do
+  def handle_info({_module, _from, %{args: args}}, %{order_book_depth: :infinity} = state) do
+    :ok = update_order_book(state, args)
+    {:noreply, state}
+  end
+
+  @doc false
+  def handle_info({_module, _from, %{args: args}}, %{order_book_depth: depth, book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}} = state) do
+    cond do
+      :ets.info(asks_book_tid, :size) > depth -> clean_order_book(asks_book_tid)
+      :ets.info(bids_book_tid, :size) > depth -> clean_order_book(bids_book_tid)
+      true -> :ok #do_nothing
+    end
     :ok = update_order_book(state, args)
     {:noreply, state}
   end
@@ -215,6 +237,13 @@ defmodule Krasukha.MarketGen do
     :true = history_tid(state)
       |> :ets.insert(object)
   end
+
+  @doc false
+  def clean_order_book(%{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}, history_tid: history_tid} = state) do
+    for tid <- [asks_book_tid, bids_book_tid, history_tid], do: :true = clean_order_book(tid)
+    state
+  end
+  def clean_order_book(tid) when is_atom(tid), do: :ets.delete_all_objects(tid)
 
   defp book_tid(%{book_tids: %{asks_book_tid: asks_book_tid}}, type) when type in [:asks, "ask", "buy"], do: asks_book_tid
   defp book_tid(%{book_tids: %{bids_book_tid: bids_book_tid}}, type) when type in [:bids, "bid", "sell"], do: bids_book_tid
