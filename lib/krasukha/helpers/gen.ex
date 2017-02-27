@@ -2,23 +2,14 @@ defmodule Krasukha.Helpers.Gen do
   @moduledoc false
 
   @doc false
-  def handle_info({action, pid}, state) when action in [:suspend, :resume] do
-    :ok = suspend_or_resume(pid, action)
+  def handle_info({action, identifier}, state) when action in [:suspend, :resume] do
+    :ok = apply(:sys, action, [to_pid(identifier)])
     {:noreply, state}
   end
 
   @doc false
-  def suspend_or_resume(identifier, action) when is_binary(identifier) do
-    :erlang.list_to_pid('<#{identifier}>')
-      |> suspend_or_resume(action)
-  end
-  def suspend_or_resume(identifier, action) when is_list(identifier) do
-    :unicode.characters_to_binary(identifier)
-      |> suspend_or_resume(action)
-  end
-  def suspend_or_resume(pid, action) when is_pid(pid) do
-    apply(:sys, action, [pid])
-  end
+  def to_pid(identifier) when is_binary(identifier), do: :erlang.list_to_pid('<#{identifier}>')
+  def to_pid(identifier) when is_list(identifier), do: to_pid(:unicode.characters_to_binary(identifier))
 
   @doc false
   def apply_preflight_opts(state, [], _mod), do: state
