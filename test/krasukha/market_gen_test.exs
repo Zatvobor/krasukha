@@ -20,15 +20,19 @@ defmodule Krasukha.MarketGenTest do
   end
 
   describe "event manager" do
-    test "event_manager", %{server: pid} do
+    test "calls :create_event_manager", %{server: pid} do
       event_manager = GenServer.call(pid, :create_event_manager)
       assert Process.alive?(event_manager)
     end
   end
 
   describe "a part of order book operations in case of" do
-    test "clean_order_book", %{server: pid} do
-      assert :ok = GenServer.call(pid, :clean_order_book)
+    test "calls :clean_order_books", %{server: pid} do
+      assert :ok = GenServer.call(pid, :clean_order_books)
+    end
+
+    test "calls :clean_history_book", %{server: pid} do
+      assert :ok = GenServer.call(pid, :clean_history_book)
     end
 
     test "tids", %{server: pid} do
@@ -92,27 +96,27 @@ defmodule Krasukha.MarketGenTest do
 
   describe "order_book is fetching, using" do
     @tag :external
-    test "fetch_order_book", %{server: pid} do
+    test "calls :fetch_order_books", %{server: pid} do
       [asks_book_tid, bids_book_tid] = GenServer.call(pid, :book_tids)
-      assert :ok = GenServer.call(pid, {:fetch_order_book, [depth: 1]})
+      assert :ok = GenServer.call(pid, {:fetch_order_books, [depth: 1]})
       assert :ets.info(asks_book_tid, :size) == 1
       assert :ets.info(bids_book_tid, :size) == 1
     end
 
-    test "fetch_order_book/3 and inserting object into :ets" do
+    test "fetch_order_books/3 and inserting object into :ets" do
       asks = [["0.05", 1], [0.06, 1]]
       bids = [[0.04, 1], [0.03, "1"]]
       %{book_tids: book_tids} = state = MarketGen.__create_books_table()
       %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid} = book_tids
 
-      assert :ok = MarketGen.fetch_order_book(state, asks, bids)
+      assert :ok = MarketGen.fetch_order_books(state, asks, bids)
       assert :ets.info(asks_book_tid, :size) == 2
       assert :ets.lookup(asks_book_tid, 0.05) == [{0.05, 1.0}]
       assert :ets.info(bids_book_tid, :size) == 2
       assert :ets.lookup(bids_book_tid, 0.03) == [{0.03, 1.0}]
     end
 
-    test "fetch_order_book/3 and notifying object over GenEvent" do
+    test "fetch_order_books/3 and notifying object over GenEvent" do
       asks = [["0.05", 1], [0.06, 1]]
       bids = [[0.04, 1], [0.03, "1"]]
       state = %{}
@@ -121,7 +125,7 @@ defmodule Krasukha.MarketGenTest do
 
       %{event_manager: event_manager} = state
       assert :ok = GenEvent.add_handler(event_manager, EventHandler, [self()])
-      assert :ok = MarketGen.fetch_order_book(state, asks, bids)
+      assert :ok = MarketGen.fetch_order_books(state, asks, bids)
       assert_receive {:fetch_order_book, [{0.05, 1.0}, {0.06, 1.0}]}
       assert_receive {:fetch_order_book, [{0.04, 1.0}, {0.03, 1.0}]}
     end

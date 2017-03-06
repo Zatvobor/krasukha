@@ -105,9 +105,15 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def handle_call(:clean_order_book, _from, state) do
-    new_state = clean_order_book(state)
-    {:reply, :ok, new_state}
+  def handle_call(:clean_order_books, _from, %{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}} = state) do
+    for tid <- [asks_book_tid, bids_book_tid], do: :ok = clean_order_book(tid)
+    {:reply, :ok, state}
+  end
+
+  @doc false
+  def handle_call(:clean_history_book, _from, %{history_tid: history_tid} = state) do
+    :ok = clean_order_book(history_tid)
+    {:reply, :ok, state}
   end
 
   @doc false
@@ -116,14 +122,14 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def handle_call(:fetch_order_book, _from, %{currency_pair: currency_pair} = state) do
-    new_state = fetch_order_book(state, [currencyPair: currency_pair, depth: 1])
+  def handle_call(:fetch_order_books, _from, %{currency_pair: currency_pair} = state) do
+    new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: 1])
     {:reply, new_state.fetch_order_book_result, new_state}
   end
 
   @doc false
-  def handle_call({:fetch_order_book, [depth: depth]}, _from, %{currency_pair: currency_pair} = state) do
-    new_state = fetch_order_book(state, [currencyPair: currency_pair, depth: depth])
+  def handle_call({:fetch_order_books, [depth: depth]}, _from, %{currency_pair: currency_pair} = state) do
+    new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: depth])
     {:reply, new_state.fetch_order_book_result, new_state}
   end
 
@@ -155,6 +161,43 @@ defmodule Krasukha.MarketGen do
     :ok = update_order_book(state, args)
     {:noreply, state}
   end
+
+  @doc false
+  def handle_info(:clean_order_books, %{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}} = state) do
+    for tid <- [asks_book_tid, bids_book_tid], do: :ok = clean_order_book(tid)
+    {:noreply, state}
+  end
+
+  @doc false
+  def handle_info(:clean_history_book, %{history_tid: history_tid} = state) do
+    :ok = clean_order_book(history_tid)
+    {:noreply, state}
+  end
+
+  @doc false
+  def handle_info(:fetch_order_books, %{currency_pair: currency_pair} = state) do
+    new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: 1])
+    {:noreply, new_state}
+  end
+
+  @doc false
+  def handle_info({:fetch_order_books, depth}, %{currency_pair: currency_pair} = state) do
+    new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: depth])
+    {:noreply, new_state}
+  end
+
+  @doc false
+  def handle_info(:unsubscribe, state) do
+    new_state = unsubscribe(state)
+    {:noreply, new_state}
+  end
+
+  @doc false
+  def handle_info(:subscribe, state) do
+    new_state = subscribe(state)
+    {:noreply, new_state}
+  end
+
 
   @doc false
   defdelegate handle_info(suspend_or_resume, state), to: Helpers.Gen
@@ -190,14 +233,14 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def fetch_order_book(state, params) do
+  def fetch_order_books(state, params) do
     {:ok, 200, %{asks: asks, bids: bids, isFrozen: "0"}} = HTTP.PublicAPI.return_order_book(params)
-    result = fetch_order_book(state, asks, bids)
+    result = fetch_order_books(state, asks, bids)
     Map.put(state, :fetch_order_book_result, result)
   end
 
   @doc false
-  def fetch_order_book(%{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}} = state, asks, bids) do
+  def fetch_order_books(%{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}} = state, asks, bids) do
     flow = [{asks, asks_book_tid}, {bids, bids_book_tid}]
     for {records, tid} <- flow do
       objects = Enum.map(records, fn(record) -> to_tuple_with_floats(record) end)
@@ -243,7 +286,10 @@ defmodule Krasukha.MarketGen do
     for tid <- [asks_book_tid, bids_book_tid, history_tid], do: :true = clean_order_book(tid)
     state
   end
-  def clean_order_book(tid) when is_atom(tid), do: :ets.delete_all_objects(tid)
+  def clean_order_book(tid) when is_atom(tid) do
+    :true = :ets.delete_all_objects(tid)
+    :ok
+  end
 
   defp book_tid(%{book_tids: %{asks_book_tid: asks_book_tid}}, type) when type in [:asks, "ask", "buy"], do: asks_book_tid
   defp book_tid(%{book_tids: %{bids_book_tid: bids_book_tid}}, type) when type in [:bids, "bid", "sell"], do: bids_book_tid
