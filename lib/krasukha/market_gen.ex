@@ -210,7 +210,7 @@ defmodule Krasukha.MarketGen do
 
   # Client API
 
-  import Helpers.String, only: [to_atom: 1, to_float: 1, to_tuple_with_floats: 1]
+  import Helpers.String, only: [to_atom: 1, to_float: 1, to_tuple_with_floats: 1, to_integer: 1]
 
   @doc false
   def create_event_manager(state) do
@@ -275,7 +275,7 @@ defmodule Krasukha.MarketGen do
 
   @doc false
   def update_order_book(state, %{"data" => data, "type" => "newTrade"}) do
-    object = {data["date"], to_atom(data["type"]), to_float(data["rate"]), to_float(data["amount"]), to_float(data["total"]), data["tradeID"]}
+    object = {to_integer(data["tradeID"]), data["date"], to_atom(data["type"]), to_float(data["rate"]), to_float(data["amount"]), to_float(data["total"])}
     :ok = notify(state, {:update_order_history, object})
     :true = history_tid(state)
       |> :ets.insert(object)

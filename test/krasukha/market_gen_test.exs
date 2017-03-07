@@ -233,7 +233,7 @@ defmodule Krasukha.MarketGenTest do
 
     @message [6956793409822983, 4840230496786428, %{},
     [
-        %{"data" => %{"tradeID" => 1, "rate" => "0.00000110", "amount" => "10.03", "date" => "2014-10-07 21:51:20", "total" => "0.000011", "type" => "sell"}, "type" => "newTrade"}
+        %{"data" => %{"tradeID" => 627705, "rate" => "0.00000110", "amount" => "10.03", "date" => "2014-10-07 21:51:20", "total" => "0.000011", "type" => "sell"}, "type" => "newTrade"}
     ],
         %{"seq" => 733186}
     ]
@@ -250,7 +250,7 @@ defmodule Krasukha.MarketGenTest do
 
       assert :ets.info(tid, :size) == 0
       assert :ets.lookup(tid, 0.00000110) == []
-      assert_receive {:update_order_history, {"2014-10-07 21:51:20", :sell, 1.1e-6, 10.03, 1.1e-5, 1}}
+      assert_receive {:update_order_history, {627705, "2014-10-07 21:51:20", :sell, 1.1e-6, 10.03, 1.1e-5}}
     end
   end
 end

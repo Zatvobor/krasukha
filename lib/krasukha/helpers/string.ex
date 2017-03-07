@@ -5,6 +5,11 @@ defmodule Krasukha.Helpers.String do
   defdelegate to_atom(string), to: String
 
   @doc false
+  def to_integer(term) when is_integer(term), do: term
+  defdelegate to_integer(string), to: String
+
+
+  @doc false
   def to_tuple_with_floats([rate, amount]), do: {to_float(rate), to_float(amount)}
   def to_tuple_with_floats(%{"rate" => rate, "amount" => amount}), do: {to_float(rate), to_float(amount)}
   def to_tuple_with_floats(%{rate: rate, amount: amount, fees: fees}), do: {to_float(rate), to_float(amount), to_float(fees)}
