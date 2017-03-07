@@ -11,7 +11,7 @@ defmodule Krasukha.WAMPGen do
 
   @doc false
   def start_link(preflight_opts \\ []) do
-    GenServer.start_link(__MODULE__, preflight_opts, [name: __MODULE__])
+    GenServer.start_link(__MODULE__, preflight_opts, [name: :wamp_gen])
   end
 
   @doc false
@@ -69,6 +69,18 @@ defmodule Krasukha.WAMPGen do
     else
       {:noreply, state, 500}
     end
+  end
+
+  @doc false
+  def handle_info(:connect, %{subscriber: nil} = state) do
+    new_state = connect(state)
+    {:noreply, new_state}
+  end
+
+  @doc false
+  def handle_info(:disconnect, %{subscriber: pid} = state) when is_pid(pid) do
+    new_state = disconnect(state)
+    {:noreply, new_state}
   end
 
   @doc false

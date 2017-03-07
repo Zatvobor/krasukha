@@ -9,7 +9,7 @@ defmodule Krasukha do
   def stop(_state), do: stop_wamp_connection()
 
   @doc false
-  def start_wamp_connection, do: GenServer.call(Krasukha.WAMPGen, :connect)
+  def start_wamp_connection, do: GenServer.call(:wamp_gen, :connect)
   @doc false
   def stop_wamp_connection, do: Krasukha.WAMP.disconnect!()
 
