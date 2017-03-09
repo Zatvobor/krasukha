@@ -1,5 +1,5 @@
-require Logger
 alias Krasukha.{HTTP, Helpers}
+import Helpers.Routine, [only: [info: 1]]
 
 defmodule Krasukha.LendingRoutines do
   @moduledoc false
@@ -48,8 +48,7 @@ defmodule Krasukha.LendingRoutines do
     open_loan_offers = open_loan_offers[Helpers.String.to_atom(currency)]
     for open_loan_offer <- filter_open_loan_offers(open_loan_offers, params) do
       {:ok, 200, response} = HTTP.PrivateAPI.cancel_loan_offer(agent, [orderNumber: open_loan_offer.id])
-      # %{success: 1, message: "Loan offer canceled."}
-      response |> inspect |> Logger.info
+      response |> info()
     end
   end
 
@@ -123,6 +122,6 @@ defmodule Krasukha.LendingRoutines do
   def create_loan_offer(rate, amount, %{agent: agent, currency: currency, duration: duration, auto_renew: auto_renew}) do
     params = [currency: currency, lendingRate: Helpers.String.float_to_binary(rate), amount: Helpers.String.float_to_binary(amount), duration: duration, autoRenew: auto_renew]
     {:ok, 200, response} = HTTP.PrivateAPI.create_loan_offer(agent, params)
-    response |> inspect |> Logger.info
+    response |> info()
   end
 end

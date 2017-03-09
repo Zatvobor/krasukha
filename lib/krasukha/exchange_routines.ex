@@ -1,5 +1,5 @@
-require Logger
 alias Krasukha.{HTTP, Helpers}
+import Helpers.Routine, [only: [info: 1]]
 
 defmodule Krasukha.ExchangeRoutines do
   @moduledoc false
@@ -51,14 +51,14 @@ defmodule Krasukha.ExchangeRoutines do
   @doc false
   def buy_lowest(params) do
     {_tab, _key, seed} = lookup(:first, :asks, params)
-    place_buy_order(seed, params)
+    place_buy_order(seed, params) |> info()
   end
 
   @doc false
   def place_highest(%{limit_amount: limit_amount, spread_rate: spread_rate} = params) when is_float(limit_amount) do
     {_tab, _key, [{rate, _amount}] = _seed} = lookup(:last, :bids, params)
     seed = [{rate + spread_rate, limit_amount}]
-    place_buy_order(seed, params)
+    place_buy_order(seed, params) |> info()
   end
 
   @doc false
@@ -68,7 +68,7 @@ defmodule Krasukha.ExchangeRoutines do
       possibility = find_possibility_for_order(seed, extended_params),
       {balance, best_amount, rate, stop_rate, order} when (rate < stop_rate) and (balance > (rate * best_amount)) <- possibility,
       {:ok, 200, response} <- HTTP.PrivateAPI.buy(agent, order) do
-        response |> inspect |> Logger.info
+        response |> info()
         accumulate_stop_limit(best_amount, params)
       end
   end
@@ -76,14 +76,14 @@ defmodule Krasukha.ExchangeRoutines do
   @doc false
   def sell_highest(params) do
     {_tab, _key, seed} = lookup(:last, :bids, params)
-    place_sell_order(seed, params)
+    place_sell_order(seed, params) |> info()
   end
 
   @doc false
   def place_lowest(%{limit_amount: limit_amount, spread_rate: spread_rate}= params) when is_float(limit_amount) do
     {_tab, _key, [{rate, _amount}] = _seed} = lookup(:first, :asks, params)
     seed = [{rate - spread_rate, limit_amount}]
-    place_sell_order(seed, params)
+    place_sell_order(seed, params) |> info()
   end
 
   @doc false
@@ -93,7 +93,7 @@ defmodule Krasukha.ExchangeRoutines do
       possibility = find_possibility_for_order(seed, extended_params),
       {balance, best_amount, rate, stop_rate, order} when (rate > stop_rate or stop_rate == :infinity) and (balance > best_amount) <- possibility,
       {:ok, 200, response} <- HTTP.PrivateAPI.sell(agent, order) do
-        response |> inspect |> Logger.info
+        response |> info()
         accumulate_stop_limit(best_amount, params)
       end
   end

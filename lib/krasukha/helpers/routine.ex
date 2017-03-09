@@ -73,4 +73,10 @@ defmodule Krasukha.Helpers.Routine do
   def system_terminate(reason, _parent, _debug, _chs) do
     exit(reason)
   end
+
+  @doc false
+  def info(term) do
+    term |> inspect |> Logger.info
+    term
+  end
 end

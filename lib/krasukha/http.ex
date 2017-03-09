@@ -59,15 +59,15 @@ defmodule Krasukha.HTTP do
     :httpc.request(method, request, http_options, options)
   end
 
-  defp response(req) do
-    case req do
+  defp response(result) do
+    case result do
       {:ok, { {_, status, _}, _, body}} ->
         if round(status / 100) == 4 || round(status / 100) == 5 do
           response(:error, status, body)
         else
           response(:ok, status, body)
         end
-      _ -> :error
+      _ -> result
     end
   end
 
