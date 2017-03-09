@@ -34,9 +34,11 @@ defmodule Krasukha do
   end
 
   @doc false
-  def start_market!(currency_pair) do
-    preflight_opts = [:subscribe, {:fetch_order_books, [currencyPair: currency_pair, depth: 1]}]
-    start_market(currency_pair, preflight_opts)
+  def start_market!(currency_pair, order_book_depth \\ 1) do
+    preflight_opts = [:subscribe, {:fetch_order_books, [currencyPair: currency_pair, depth: order_book_depth]}]
+    startchild_ret = start_market(currency_pair, preflight_opts)
+    with {:ok, pid} when is_pid(pid) <- startchild_ret, do: :ok = GenServer.call(pid, {:order_book_depth, order_book_depth})
+    startchild_ret
   end
 
   @doc false

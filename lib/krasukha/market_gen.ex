@@ -105,8 +105,8 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def handle_call(:clean_order_books, _from, %{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}} = state) do
-    for tid <- [asks_book_tid, bids_book_tid], do: :ok = clean_order_book(tid)
+  def handle_call(:clean_order_books, _from, state) do
+    :ok = clean_order_books(state)
     {:reply, :ok, state}
   end
 
@@ -122,14 +122,19 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def handle_call(:fetch_order_books, _from, %{currency_pair: currency_pair} = state) do
-    new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: 1])
-    {:reply, new_state.fetch_order_book_result, new_state}
+  def handle_call(:order_book_depth, _from, %{order_book_depth: order_book_depth} = state) do
+    {:reply, order_book_depth, state}
   end
 
   @doc false
   def handle_call({:fetch_order_books, [depth: depth]}, _from, %{currency_pair: currency_pair} = state) do
     new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: depth])
+    {:reply, new_state.fetch_order_book_result, new_state}
+  end
+
+  @doc false
+  def handle_call(:fetch_order_books, _from, %{currency_pair: currency_pair} = state) do
+    new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: 1])
     {:reply, new_state.fetch_order_book_result, new_state}
   end
 
@@ -146,25 +151,28 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def handle_info({_module, _from, %{args: args}}, %{order_book_depth: :infinity} = state) do
+  def handle_call({:shrink_order_books, depth}, _from, %{currency_pair: currency_pair} = state) do
+    :ok = clean_order_books(state)
+    new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: depth])
+    {:reply, :ok, new_state}
+  end
+
+  @doc false
+  def handle_call(:shrink_order_books, %{currency_pair: currency_pair, order_book_depth: order_book_depth} = state) when is_integer(order_book_depth) do
+    :ok = clean_order_books(state)
+    new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: order_book_depth])
+    {:reply, :ok, new_state}
+  end
+
+  @doc false
+  def handle_info({_module, _from, %{args: args}}, state) do
     :ok = update_order_book(state, args)
     {:noreply, state}
   end
 
   @doc false
-  def handle_info({_module, _from, %{args: args}}, %{order_book_depth: depth, book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}} = state) do
-    cond do
-      :ets.info(asks_book_tid, :size) > depth -> clean_order_book(asks_book_tid)
-      :ets.info(bids_book_tid, :size) > depth -> clean_order_book(bids_book_tid)
-      true -> :ok #do_nothing
-    end
-    :ok = update_order_book(state, args)
-    {:noreply, state}
-  end
-
-  @doc false
-  def handle_info(:clean_order_books, %{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}} = state) do
-    for tid <- [asks_book_tid, bids_book_tid], do: :ok = clean_order_book(tid)
+  def handle_info(:clean_order_books, state) do
+    :ok = clean_order_books(state)
     {:noreply, state}
   end
 
@@ -198,6 +206,19 @@ defmodule Krasukha.MarketGen do
     {:noreply, new_state}
   end
 
+  @doc false
+  def handle_info(:shrink_order_books, %{currency_pair: currency_pair, order_book_depth: order_book_depth} = state) when is_integer(order_book_depth) do
+    :ok = clean_order_books(state)
+    new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: order_book_depth])
+    {:noreply, new_state}
+  end
+
+  @doc false
+  def handle_info({:shrink_order_books, order_book_depth}, %{currency_pair: currency_pair} = state) do
+    :ok = clean_order_books(state)
+    new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: order_book_depth])
+    {:noreply, new_state}
+  end
 
   @doc false
   defdelegate handle_info(suspend_or_resume, state), to: Helpers.Gen
@@ -288,6 +309,12 @@ defmodule Krasukha.MarketGen do
   end
   def clean_order_book(tid) when is_atom(tid) do
     :true = :ets.delete_all_objects(tid)
+    :ok
+  end
+
+  @doc false
+  def clean_order_books(%{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}} = _state) do
+    for tid <- [asks_book_tid, bids_book_tid], do: :ok = clean_order_book(tid)
     :ok
   end
 
