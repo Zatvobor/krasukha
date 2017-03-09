@@ -43,6 +43,12 @@ defmodule Krasukha.ExchangeRoutines do
   defdelegate do_nothing(state), to: Helpers.Routine
 
   @doc false
+  def shrink_order_books(%{market: market} = _params) do
+    order_book_depth = GenServer.call(market, :order_book_depth)
+    GenServer.call(market, {:shrink_order_books, order_book_depth})
+  end
+
+  @doc false
   def buy_lowest(params) do
     {_tab, _key, seed} = lookup(:first, :asks, params)
     place_buy_order(seed, params)
