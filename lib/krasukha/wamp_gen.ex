@@ -38,6 +38,9 @@ defmodule Krasukha.WAMPGen do
     new_state = connect(state)
     {:reply, {:ok, new_state.subscriber}, new_state}
   end
+  def handle_call(:connect, _from, %{subscriber: pid} = state) when is_pid(pid) do
+    {:reply, {:error, {:already_connected, pid}}, state}
+  end
 
   @doc false
   def handle_call(:disconnect, _from, %{subscriber: pid} = state) when is_pid(pid) do
