@@ -49,6 +49,7 @@ defmodule Krasukha.LendingRoutines do
     for open_loan_offer <- filter_open_loan_offers(open_loan_offers, params) do
       {:ok, 200, response} = HTTP.PrivateAPI.cancel_loan_offer(agent, [orderNumber: open_loan_offer.id])
       response |> info()
+      :ok
     end
   end
 
@@ -123,5 +124,6 @@ defmodule Krasukha.LendingRoutines do
     params = [currency: currency, lendingRate: Helpers.String.float_to_binary(rate), amount: Helpers.String.float_to_binary(amount), duration: duration, autoRenew: auto_renew]
     {:ok, 200, response} = HTTP.PrivateAPI.create_loan_offer(agent, params)
     response |> info()
+    :ok
   end
 end
