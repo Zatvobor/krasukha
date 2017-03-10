@@ -35,9 +35,6 @@ defmodule Krasukha.WAMP.Subscribed.Supervisor do
 
 
   defp for_each_children_call(fun) do
-    for {id, _, :worker, [_]} <- which_children() do
-      {:ok, child_spec} = fun.(id)
-      child_spec
-    end
+    for {id, _, :worker, [_]} <- which_children(), do: fun.(id)
   end
 end
