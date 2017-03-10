@@ -11,7 +11,7 @@ defmodule Krasukha do
   @doc false
   def start_wamp_connection, do: GenServer.call(:wamp_gen, :connect)
   @doc false
-  def stop_wamp_connection, do: Krasukha.WAMP.disconnect!()
+  def stop_wamp_connection, do: GenServer.call(:wamp_gen, :disconnect)
 
   @doc false
   def start_markets(preflight_opts \\ []) do
