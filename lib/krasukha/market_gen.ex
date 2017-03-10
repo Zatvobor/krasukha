@@ -6,9 +6,13 @@ defmodule Krasukha.MarketGen do
   @moduledoc false
 
   @doc false
-  def start_link(currency_pair, preflight_opts \\ []) when is_binary(currency_pair) do
+  def start_link(params, preflight_opts \\ [])
+  def start_link(currency_pair, preflight_opts) when is_binary(currency_pair) do
+    start_link(%{currency_pair: currency_pair}, preflight_opts)
+  end
+  def start_link(%{currency_pair: currency_pair} = params, preflight_opts) when is_map(params) do
     options = [name: Helpers.Naming.process_name(currency_pair, :market)]
-    GenServer.start_link(__MODULE__, [currency_pair, preflight_opts], options)
+    GenServer.start_link(__MODULE__, [params, preflight_opts], options)
   end
 
   @doc false
@@ -18,13 +22,12 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def init([currency_pair, preflight_opts]) do
-    %{subscriber: subscriber} = WAMP.connection()
-
-    state = default_params()
-      |> Map.merge(%{currency_pair: currency_pair, subscriber: subscriber})
-      |> Map.merge(__create_books_table(currency_pair))
-      |> Map.merge(__create_history_table(currency_pair))
+  def init([params, preflight_opts]) do
+    params = Map.merge(default_params(), params)
+    state = params
+      |> Map.merge(WAMP.connection())
+      |> Map.merge(__create_books_table(params.currency_pair))
+      |> Map.merge(__create_history_table(params.currency_pair))
 
     # applies preflight setup
     state = apply_preflight_opts(state, preflight_opts, __MODULE__)

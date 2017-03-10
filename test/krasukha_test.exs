@@ -23,15 +23,17 @@ defmodule KrasukhaTest do
   end
 
   @tag :external
-  test "start_market/1" do
+  test "start_market!/1" do
     {:ok, _pid} = start_wamp_connection
     assert {:ok, pid} = start_market!("BTC_SC")
     assert Process.alive?(pid)
     :ok = stop_wamp_connection
   end
 
-  test "start_market!/1" do
-    assert {:ok, pid} = start_market("untitled")
+  test "start_market/1" do
+    assert {:ok, pid} = start_market("BTC_SC")
+    assert Process.alive?(pid)
+    assert {:ok, pid} = start_market(%{currency_pair: "BTC_DASH"})
     assert Process.alive?(pid)
   end
 
