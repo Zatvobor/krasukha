@@ -63,7 +63,7 @@ defmodule Krasukha.WAMPGen do
   @doc false
   def handle_info(:timeout, %{wamp_subscribed: specs}= state) when is_list(specs) do
     if WAMP.Subscribed.Supervisor.whereis() do
-      for spec <- specs, do: {:ok, _pid} = WAMP.Subscribed.Supervisor.start_child(spec)
+      for {:ok, spec} <- specs, do: {:ok, _pid} = WAMP.Subscribed.Supervisor.start_child(spec)
       :ok = Application.delete_env(:krasukha, :wamp_subscribed, [persistent: true])
       {:noreply, %{state | wamp_subscribed: nil}}
     else
