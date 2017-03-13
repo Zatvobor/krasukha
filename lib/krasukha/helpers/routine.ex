@@ -4,14 +4,16 @@ defmodule Krasukha.Helpers.Routine do
   @moduledoc false
 
   @doc false
-  def start_routine(parent, mod, strategy, %{fulfill_immediately: fulfill_immediately} = params) when is_atom(strategy) do
+  def start_routine(parent, mod, strategy, params) when is_atom(strategy) do
     Process.flag(:trap_exit, true)
-    if(fulfill_immediately, do: call(mod, strategy, params, parent), else: loop(mod, strategy, params, parent))
+    loop(mod, strategy, params, parent)
   end
 
   @doc false
   def loop(mod, strategy, params, parent) when is_atom(strategy) and is_pid(parent) do
     receive do
+      :fulfill_immediately ->
+        call(mod, strategy, params, parent)
       {:adjust, request} ->
         loop(mod, strategy, Enum.into(request, params), parent)
       {:system, from, request} ->
@@ -41,7 +43,6 @@ defmodule Krasukha.Helpers.Routine do
   @doc false
   def default_params() do
     %{}
-      |> Map.merge(%{fulfill_immediately: false})
       |> Map.merge(%{sleep_time_inactive: 60, sleep_time_inactive_seed: 1}) # in seconds
   end
 

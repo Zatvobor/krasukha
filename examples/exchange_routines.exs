@@ -10,7 +10,7 @@
 # 1. A fill-or-kill order will either fill in its entirety or be completely aborted.
 # An immediate-or-cancel order can be partially or completely filled, but any portion of the order that cannot be filled immediately will be canceled rather than left on the order book.
 # A post-only order will only be placed if no portion of it fills immediately; this guarantees you will never pay the taker fee on any part of the order that fills.
-params = %{fulfill_immediately: true, currency_pair: "BTC_XRP", stop_rate: 0.00000690, stop_limit: 200, limit_amount: 15}
+params = %{currency_pair: "BTC_XRP", stop_rate: 0.00000690, stop_limit: 200, limit_amount: 15}
 Krasukha.start_exchange_routine(agent, :buy_lowest, params)
 params = %{sleep_time_inactive: 60, currency_pair: "BTC_XRP", stop_rate: 0.00000699, stop_limit: :infinity, limit_amount: 15}
 Krasukha.start_exchange_routine(agent, :sell_highest, params)
