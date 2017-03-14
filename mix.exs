@@ -7,7 +7,7 @@ defmodule Krasukha.Mixfile do
     [
       app: :krasukha,
       description: "SDK for monitoring/trading/lending on Poloniex cryptocurrency exchange",
-      version: "0.1.0",
+      version: "0.2.0-dev",
       elixir: "~> 1.3",
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
