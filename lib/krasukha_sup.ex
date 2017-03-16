@@ -1,6 +1,13 @@
 defmodule Krasukha.Supervisor do
   @moduledoc false
 
+  use Krasukha.Helpers.Supervisor
+
+  @doc false
+  def start_link do
+    Supervisor.start_link(child_spec, options)
+  end
+
   @doc false
   def child_spec do
     import Supervisor.Spec, only: [supervisor: 3]
@@ -31,16 +38,4 @@ defmodule Krasukha.Supervisor do
   def options do
     [strategy: :one_for_one, name: Krasukha.Supervisor]
   end
-
-  @doc false
-  def start_link do
-    Supervisor.start_link(child_spec, options)
-  end
-
-  @doc false
-  def terminate_child(id), do: Supervisor.terminate_child(__MODULE__, id)
-  @doc false
-  def restart_child(id), do: Supervisor.restart_child(__MODULE__, id)
-  @doc false
-  def delete_child(id), do: Supervisor.delete_child(__MODULE__, id)
 end
