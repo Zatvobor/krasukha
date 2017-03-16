@@ -268,8 +268,8 @@ defmodule Krasukha.MarketGen do
     flow = [{asks, asks_book_tid}, {bids, bids_book_tid}]
     for {records, tid} <- flow do
       objects = Enum.map(records, fn(record) -> to_tuple_with_floats(record) end)
-      :ok = notify(state, {:fetch_order_book, objects})
       :true = :ets.insert(tid, objects)
+      :ok = notify(state, {:fetch_order_book, objects})
     end
     :ok
   end
@@ -282,27 +282,27 @@ defmodule Krasukha.MarketGen do
 
   @doc false
   def update_order_book(state, %{"data" => data, "type" => "orderBookModify"}) do
+    tid = book_tid(state, data["type"])
     object = to_tuple_with_floats(data)
+    :true = :ets.insert(tid, object)
     :ok = notify(state, {:update_order_book, :orderBookModify, object})
-    :true = book_tid(state, data["type"])
-      |> :ets.insert(object)
   end
 
   @doc false
   def update_order_book(state, %{"data" => data, "type" => "orderBookRemove"}) do
     key = to_float(data["rate"])
+    tid = book_tid(state, data["type"])
     object = to_tuple_with_floats(data)
+    :true = :ets.delete(tid, key)
     :ok = notify(state, {:update_order_book, :orderBookRemove, object})
-    :true = book_tid(state, data["type"])
-      |> :ets.delete(key)
   end
 
   @doc false
   def update_order_book(state, %{"data" => data, "type" => "newTrade"}) do
+    tid = history_tid(state)
     object = {to_integer(data["tradeID"]), data["date"], to_atom(data["type"]), to_float(data["rate"]), to_float(data["amount"]), to_float(data["total"])}
+    :true = :ets.insert(tid, object)
     :ok = notify(state, {:update_order_history, object})
-    :true = history_tid(state)
-      |> :ets.insert(object)
   end
 
   @doc false
