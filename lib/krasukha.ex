@@ -31,8 +31,8 @@ defmodule Krasukha do
   def start_market(currency_pair, preflight_opts) when is_binary(currency_pair) do
     start_market(%{currency_pair: currency_pair}, preflight_opts)
   end
-  def start_market(%{currency_pair: currency_pair} = params, preflight_opts) when is_map(params) do
-    id = Naming.process_name(currency_pair, :market)
+  def start_market(%{currency_pair: currency_pair} = params, preflight_opts) when is_binary(currency_pair) do
+    id = Naming.monotonic_id()
     spec = Supervisor.Spec.worker(Krasukha.MarketGen, [params, preflight_opts], [id: id, restart: :transient])
     Supervisor.start_child(Krasukha.WAMP.Subscribed.Supervisor, spec)
   end
@@ -49,13 +49,13 @@ defmodule Krasukha do
   end
 
   @doc false
-  def start_lending(currency, preflight_opts \\ []) do
-    id = Naming.process_name(currency, :lending)
+  def start_lending(currency, preflight_opts \\ []) when is_binary(currency) do
+    id = Naming.monotonic_id()
     spec = Supervisor.Spec.worker(Krasukha.LendingGen, [currency, preflight_opts], [id: id, restart: :transient])
     Supervisor.start_child(Krasukha.LendingRoutines.Supervisor, spec)
   end
   @doc false
-  def start_lending!(currency, update_loan_orders_every_sec \\ 60) do
+  def start_lending!(currency, update_loan_orders_every_sec \\ 60) when is_binary(currency) do
     preflight_opts = [{:update_loan_orders, [every: update_loan_orders_every_sec]}]
     start_lending(currency, preflight_opts)
   end
