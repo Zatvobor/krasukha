@@ -18,7 +18,6 @@ defmodule Krasukha.MarketsGen do
     state = %{}
       |> Map.merge(%{subscriber: subscriber})
       |> Map.merge(__create_ticker_table())
-      |> Map.merge(__create_gen_event())
 
     # applies preflight setup
     state = apply_preflight_opts(state, preflight_opts, __MODULE__)
