@@ -27,6 +27,10 @@ defmodule Krasukha.Helpers.EventGen do
       def handle_call(:event_manager, _from, %{event_manager: event_manager} = state) do
         {:reply, event_manager, state}
       end
+      @doc false
+      def handle_call({:event_manager, pid}, _from, state) when is_pid(pid) do
+        {:reply, :ok, Map.put(state, :event_manager, pid)}
+      end
 
       defp notify(%{event_manager: event_manager}, event), do: GenEvent.notify(event_manager, event)
       defp notify(%{}, _event), do: :ok
