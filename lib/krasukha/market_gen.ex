@@ -2,6 +2,7 @@ alias Krasukha.{HTTP, WAMP, Helpers}
 
 defmodule Krasukha.MarketGen do
   use GenServer
+  use Krasukha.Helpers.EventGen
 
   @moduledoc false
 
@@ -53,24 +54,8 @@ defmodule Krasukha.MarketGen do
     %{history_tid: history_tid}
   end
 
-  @doc false
-  def __create_gen_event() do
-    {:ok, event_manager} = GenEvent.start_link()
-    %{event_manager: event_manager}
-  end
-
 
   # Server (callbacks)
-
-  @doc false
-  def handle_call(:create_event_manager, _from, state) do
-    new_state = create_event_manager(state)
-    {:reply, new_state.event_manager, new_state}
-  end
-  @doc false
-  def handle_call(:event_manager, _from, %{event_manager: event_manager} = state) do
-    {:reply, event_manager, state}
-  end
 
   @doc false
   def handle_call(:tids, _from, %{book_tids: %{asks_book_tid: asks_book_tid, bids_book_tid: bids_book_tid}, history_tid: history_tid} = state) do
@@ -237,12 +222,6 @@ defmodule Krasukha.MarketGen do
   import Helpers.String, only: [to_atom: 1, to_float: 1, to_tuple_with_floats: 1, to_integer: 1]
 
   @doc false
-  def create_event_manager(state) do
-    {:ok, event_manager} = GenEvent.start_link()
-    Map.merge(state, %{event_manager: event_manager})
-  end
-
-  @doc false
   def subscribe(%{currency_pair: currency_pair, subscriber: subscriber} = state) do
     {:ok, subscription} = WAMP.subscribe(subscriber, currency_pair)
     Map.put(state, :subscription, subscription)
@@ -324,6 +303,4 @@ defmodule Krasukha.MarketGen do
   defp book_tid(%{book_tids: %{asks_book_tid: asks_book_tid}}, type) when type in [:asks, "ask", "buy"], do: asks_book_tid
   defp book_tid(%{book_tids: %{bids_book_tid: bids_book_tid}}, type) when type in [:bids, "bid", "sell"], do: bids_book_tid
   defp history_tid(%{history_tid: history_tid}), do: history_tid
-  defp notify(%{event_manager: event_manager}, event), do: GenEvent.notify(event_manager, event)
-  defp notify(%{}, _event), do: :ok
 end

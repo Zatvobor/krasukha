@@ -8,6 +8,8 @@ defmodule Krasukha.MarketsGenTest do
     {:ok, [server: pid]}
   end
 
+  use Krasukha.SharedEventManagerBehavior
+
   describe "server behavior" do
     test "process is alive", %{server: pid} do
       assert Process.alive?(pid)
@@ -16,13 +18,6 @@ defmodule Krasukha.MarketsGenTest do
 
     test "process terminates", %{server: pid} do
       assert :ok = GenServer.stop(pid)
-    end
-  end
-
-  describe "event manager" do
-    test "event_manager", %{server: pid} do
-      event_manager = GenServer.call(pid, :event_manager)
-      assert Process.alive?(event_manager)
     end
   end
 
