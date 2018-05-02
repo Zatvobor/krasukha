@@ -1,20 +1,20 @@
 alias Krasukha.{Supervisor}
-import Krasukha.LendingRoutines.Supervisor
+import Krasukha.ExchangeRoutines.Supervisor
 
-defmodule Krasukha.LendingRoutines.SupervisorTest do
+defmodule Krasukha.ExchangeRoutines.SupervisorTest do
   use ExUnit.Case, async: true
 
   setup do
     {:ok, pid} = Krasukha.start_secret_agent("key", "secret")
-    Supervisor.restart_child(Krasukha.LendingRoutines.Supervisor)
-    on_exit fn -> Supervisor.terminate_child(Krasukha.LendingRoutines.Supervisor) end
+    Supervisor.restart_child(Krasukha.ExchangeRoutines.Supervisor)
+    on_exit fn -> Supervisor.terminate_child(Krasukha.ExchangeRoutines.Supervisor) end
     [agent: pid]
   end
 
   describe "child context" do
     setup %{agent: agent} do
       for currency <- ["X", "Y"] do
-        {:ok, _} = Krasukha.start_lending_routine(agent, :do_nothing, %{currency: currency})
+        {:ok, _} = Krasukha.start_exchange_routine(agent, :do_nothing, %{currency_pair: currency})
       end
     end
 
