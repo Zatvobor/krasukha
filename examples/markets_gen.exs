@@ -14,6 +14,10 @@ Krasukha.start_markets!()
 :ok = GenServer.call(:markets, :unsubscribe_ticker)
 :ok = WAMP.disconnect!
 
+# updating over HTTP
+:ok = GenServer.call(:markets, {:update_ticker, [every: 60]})
+:ok = GenServer.call(:markets, :stop_to_update_fetcher)
+
 
 # getting ticker table
 ticker_tid = GenServer.call(:markets, :ticker_tid)
