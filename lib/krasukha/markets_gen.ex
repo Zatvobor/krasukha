@@ -2,6 +2,7 @@ alias Krasukha.{HTTP, WAMP, Helpers}
 
 defmodule Krasukha.MarketsGen do
   use GenServer
+  use Krasukha.Helpers.EventGen
 
   @moduledoc false
 
@@ -17,7 +18,6 @@ defmodule Krasukha.MarketsGen do
     state = %{}
       |> Map.merge(%{subscriber: subscriber})
       |> Map.merge(__create_ticker_table())
-      |> Map.merge(__create_gen_event())
 
     # applies preflight setup
     state = apply_preflight_opts(state, preflight_opts, __MODULE__)
@@ -34,18 +34,7 @@ defmodule Krasukha.MarketsGen do
     %{ticker: ticker}
   end
 
-  @doc false
-  def __create_gen_event do
-    {:ok, event_manager} = GenEvent.start_link()
-    %{event_manager: event_manager}
-  end
-
   # Server (callbacks)
-
-  @doc false
-  def handle_call(:event_manager, _from, %{event_manager: event_manager} = state) do
-    {:reply, event_manager, state}
-  end
 
   @doc false
   def handle_call({:subscriber, subscriber}, _from, state) do
@@ -173,7 +162,4 @@ defmodule Krasukha.MarketsGen do
         ticker_fetcher(ref, server, timeout)
     end
   end
-
-  defp notify(%{event_manager: event_manager}, event), do: GenEvent.notify(event_manager, event)
-  defp notify(%{}, _event), do: :ok
 end
