@@ -1,5 +1,5 @@
 alias Krasukha.{HTTP, Helpers}
-import Helpers.Routine, [only: [info: 1]]
+import Helpers.Routine
 
 defmodule Krasukha.LendingRoutines do
   @moduledoc false
@@ -14,12 +14,12 @@ defmodule Krasukha.LendingRoutines do
   @doc false
   def start(agent, strategy, params) do
     state = init(agent, params)
-    :proc_lib.spawn(Helpers.Routine, :start_routine, [self(), __MODULE__, strategy, state])
+    :proc_lib.spawn(Helpers.IterativeRoutine, :start_routine, [self(), __MODULE__, strategy, state])
   end
 
   @doc false
   def default_params() do
-    Helpers.Routine.default_params()
+    Helpers.IterativeRoutine.default_params()
       # known options for strategies like `available_balance_to_gap_position`
       |> Map.merge(%{duration: 2, auto_renew: 0, gap_top_position: 10}) # gap_bottom_position
       |> Map.merge(%{fetch_loan_orders: false})
@@ -37,8 +37,6 @@ defmodule Krasukha.LendingRoutines do
       |> Map.merge(%{agent: agent})
   end
 
-  @doc false
-  defdelegate nz(field), to: Helpers.Routine
   @doc false
   defdelegate do_nothing(state), to: Helpers.Routine
 
