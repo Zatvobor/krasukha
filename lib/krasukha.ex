@@ -20,8 +20,8 @@ defmodule Krasukha do
   end
 
   @doc false
-  def start_markets!() do
-    start_markets([:fetch_ticker, :subscribe_ticker])
+  def start_markets!(update_ticker_every_sec \\ 60) do
+    start_markets([:fetch_ticker, {:update_ticker, [every: update_ticker_every_sec]}])
   end
 
   alias Krasukha.{Helpers.Naming}
