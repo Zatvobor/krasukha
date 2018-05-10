@@ -6,7 +6,7 @@ defmodule Krasukha.WAMPGen do
 
   @doc false
   def env_specific_preflight_opts do
-    if Mix.env == :prod, do: [:connect], else: []
+    [] # if Mix.env == :prod, do: [:connect], else: []
   end
 
   @doc false
