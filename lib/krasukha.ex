@@ -38,8 +38,9 @@ defmodule Krasukha do
   end
 
   @doc false
-  def start_market!(currency_pair, order_book_depth \\ 55) when is_binary(currency_pair) do
-    preflight_opts = [:subscribe, {:fetch_order_books, [currencyPair: currency_pair, depth: order_book_depth]}]
+  def start_market!(currency_pair, order_book_depth \\ 55, update_order_books_every_sec \\ 60)
+  def start_market!(currency_pair, order_book_depth, update_order_books_every_sec) when is_binary(currency_pair) do
+    preflight_opts = [{:fetch_order_books, [currencyPair: currency_pair, depth: order_book_depth]}, {:update_order_books, [every: update_order_books_every_sec]}]
     start_market(%{currency_pair: currency_pair, order_book_depth: order_book_depth}, preflight_opts)
   end
 
