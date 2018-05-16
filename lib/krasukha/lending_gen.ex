@@ -86,46 +86,13 @@ defmodule Krasukha.LendingGen do
   end
 
   @doc false
-  def handle_call({:update_loan_orders, [every: _seconds] = params}, _from, state) do
-    new_state = update_loan_orders(state, params)
-    {:reply, new_state.fetcher, new_state}
-  end
-
-  @doc false
-  def handle_call(:stop_to_update_loan_orders, _from, %{fetcher: fetcher} = state) do
-    Process.exit(fetcher, :normal)
-    {:reply, :ok, Map.delete(state, :fetcher)}
-  end
+  defdelegate handle_call(do_nothing, from, state), to: Helpers.Gen
 
   @doc false
   defdelegate handle_info(suspend_or_resume, state), to: Helpers.Gen
 
-  @doc false
-  def loan_offers_fetcher(server, timeout) do
-    ref = Process.monitor(server)
-    Process.flag(:trap_exit, true)
-    loan_offers_fetcher(ref, server, timeout)
-    :true = Process.demonitor(ref)
-  end
-
-  def loan_offers_fetcher(ref, server, timeout) do
-    GenServer.call(server, :fetch_loan_orders)
-    receive do
-      {:DOWN, ^ref, _, _, _}    -> :ok
-      {:EXIT, ^server, :normal} -> :ok
-    after
-      timeout ->
-        loan_offers_fetcher(ref, server, timeout)
-    end
-  end
-
 
   # Client API
-
-  def update_loan_orders(state, [every: seconds]) do
-    pid = spawn(__MODULE__, :loan_offers_fetcher, [self(), seconds * 1000])
-    Map.merge(state, %{fetcher: pid})
-  end
 
   def fetch_loan_orders(%{currency: currency} = state) do
     {:ok, 200, %{offers: offers, demands: demands}} = HTTP.PublicAPI.return_loan_orders(currency)

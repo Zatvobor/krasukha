@@ -1,3 +1,5 @@
+alias Krasukha.{Helpers.Naming}
+
 defmodule Krasukha do
   use Application
 
@@ -16,15 +18,13 @@ defmodule Krasukha do
   @doc false
   def start_markets(preflight_opts \\ []) do
     spec = Supervisor.Spec.worker(Krasukha.MarketsGen, [preflight_opts], [restart: :transient])
-    Supervisor.start_child(Krasukha.WAMP.Subscribed.Supervisor, spec)
+    Supervisor.start_child(Krasukha.Markets.Supervisor, spec)
   end
 
   @doc false
-  def start_markets!(update_ticker_every_sec \\ 60) do
-    start_markets([:fetch_ticker, {:update_ticker, [every: update_ticker_every_sec]}])
+  def start_markets!() do
+    start_markets([:fetch_ticker])
   end
-
-  alias Krasukha.{Helpers.Naming}
 
   @doc false
   def start_market(params, preflight_opts \\ [])
@@ -34,19 +34,25 @@ defmodule Krasukha do
   def start_market(%{currency_pair: currency_pair} = params, preflight_opts) when is_binary(currency_pair) do
     id = Naming.monotonic_id()
     spec = Supervisor.Spec.worker(Krasukha.MarketGen, [params, preflight_opts], [id: id, restart: :transient])
-    Supervisor.start_child(Krasukha.WAMP.Subscribed.Supervisor, spec)
+    Supervisor.start_child(Krasukha.Markets.Supervisor, spec)
   end
 
   @doc false
-  def start_market!(currency_pair, order_book_depth \\ 55, update_order_books_every_sec \\ 60)
-  def start_market!(currency_pair, order_book_depth, update_order_books_every_sec) when is_binary(currency_pair) do
-    preflight_opts = [{:fetch_order_books, [currencyPair: currency_pair, depth: order_book_depth]}, {:update_order_books, [every: update_order_books_every_sec]}]
+  def start_market!(currency_pair, order_book_depth \\ 55)
+  def start_market!(currency_pair, order_book_depth) when is_binary(currency_pair) do
+    preflight_opts = [{:fetch_order_books, [currencyPair: currency_pair, depth: order_book_depth]}]
     start_market(%{currency_pair: currency_pair, order_book_depth: order_book_depth}, preflight_opts)
   end
-
   @doc false
   def start_market!(currency_pair, order_book_depth, preflight_opts) when is_binary(currency_pair) do
     start_market(%{currency_pair: currency_pair, order_book_depth: order_book_depth}, preflight_opts)
+  end
+
+  @doc false
+  def start_iterator(params, preflight_opts \\ []) do
+    id = Naming.monotonic_id()
+    spec = Supervisor.Spec.worker(Krasukha.IterativeGen, [params, preflight_opts], [id: id, restart: :transient])
+    Supervisor.start_child(Krasukha.Iterative.Supervisor, spec)
   end
 
   @doc false
@@ -56,9 +62,8 @@ defmodule Krasukha do
     Supervisor.start_child(Krasukha.LendingRoutines.Supervisor, spec)
   end
   @doc false
-  def start_lending!(currency, update_loan_orders_every_sec \\ 60) when is_binary(currency) do
-    preflight_opts = [{:update_loan_orders, [every: update_loan_orders_every_sec]}]
-    start_lending(currency, preflight_opts)
+  def start_lending!(currency) when is_binary(currency) do
+    start_lending(currency)
   end
 
   @doc false

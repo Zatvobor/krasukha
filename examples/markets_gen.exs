@@ -1,4 +1,4 @@
-alias Krasukha.{MarketsGen, WAMP, HTTP}
+alias Krasukha.{MarketsGen, IterativeGen, WAMP, HTTP}
 
 Krasukha.start_markets!()
 # the same as following:
@@ -15,9 +15,8 @@ Krasukha.start_markets!()
 :ok = WAMP.disconnect!
 
 # updating over HTTP
-:ok = GenServer.call(:markets, {:update_ticker, [every: 60]})
-:ok = GenServer.call(:markets, :stop_to_update_fetcher)
-
+params = %{server: :markets, request: :fetch_ticker, every: 30, timeout: 10000}
+IterativeGen.start_link(params, [:iterate])
 
 # getting ticker table
 ticker_tid = GenServer.call(:markets, :ticker_tid)

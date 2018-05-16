@@ -8,6 +8,12 @@ defmodule Krasukha.Helpers.Gen do
   end
 
   @doc false
+  def handle_call(:do_nothing, _from, state) do
+    Krasukha.Helpers.Routine.do_nothing()
+    {:reply, :ok, state}
+  end
+
+  @doc false
   def to_pid(identifier) when is_binary(identifier), do: :erlang.list_to_pid('<#{identifier}>')
   def to_pid(identifier) when is_list(identifier), do: to_pid(:unicode.characters_to_binary(identifier))
 

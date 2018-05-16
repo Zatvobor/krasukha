@@ -14,17 +14,12 @@ defmodule Krasukha.WAMP.Supervisor do
 
   @doc false
   def child_spec do
-    import Supervisor.Spec, only: [worker: 3, supervisor: 3]
+    import Supervisor.Spec, only: [worker: 3]
     [
       worker(
         Krasukha.WAMPGen,
         [Krasukha.WAMPGen.env_specific_preflight_opts()],
         [restart: :permanent]
-      ),
-      supervisor(
-        Supervisor,
-        [[], [strategy: :one_for_one, name: Krasukha.WAMP.Subscribed.Supervisor]],
-        [id: Krasukha.WAMP.Subscribed.Supervisor, restart: :permanent]
       )
     ]
   end

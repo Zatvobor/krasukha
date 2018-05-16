@@ -8,9 +8,8 @@ Krasukha.start_lending!("BTC")
 :ok = GenServer.call(:btc_lending, :fetch_loan_orders)
 
 # update loan orders every 60 seconds
-:ok = GenServer.call(:btc_lending, {:update_loan_orders, [every: 60]})
-:ok = GenServer.call(:btc_lending, :stop_to_update_loan_orders)
-
+params = %{server: :btc_lending, request: :fetch_loan_orders, every: 60}
+IterativeGen.start_link(params, [:iterate])
 
 # getting loan offers table
 offers_tid = GenServer.call(:btc_lending, :offers_tid)

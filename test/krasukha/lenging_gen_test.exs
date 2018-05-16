@@ -75,10 +75,4 @@ defmodule Krasukha.LendingGenTest do
   @tag :skip
   describe "loan_orders is updating, using" do
   end
-
-  @tag :skip # @tag [external: true]
-  test "update_loan_orders/2"
-
-  @tag :skip # @tag [external: true]
-  test "stop_to_update_loan_orders/0"
 end

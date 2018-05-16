@@ -37,6 +37,11 @@ defmodule KrasukhaTest do
     assert Process.alive?(pid)
   end
 
+  test "start_iterator/1" do
+    assert {:ok, pid} = start_iterator(%{server: :untitled, request: :empty})
+    assert Process.alive?(pid)
+  end
+
   test "start_secret_agent/2" do
     assert {:ok, pid} = start_secret_agent("key", "secret")
     assert Process.alive?(pid)

@@ -71,16 +71,7 @@ defmodule Krasukha.MarketsGen do
   end
 
   @doc false
-  def handle_call({:update_ticker, [every: _seconds] = params}, _from, state) do
-    new_state = update_ticker(state, params)
-    {:reply, new_state.fetcher, new_state}
-  end
-
-  @doc false
-  def handle_call(:stop_to_update_fetcher, _from, %{fetcher: fetcher} = state) do
-    Process.exit(fetcher, :normal)
-    {:reply, :ok, Map.delete(state, :fetcher)}
-  end
+  defdelegate handle_call(do_nothing, from, state), to: Helpers.Gen
 
   @doc false
   def handle_info({_module, _from, %{args: args}} = _message, state) when is_list(args) do
@@ -135,31 +126,5 @@ defmodule Krasukha.MarketsGen do
     :true = :ets.insert(tid, object)
     :ok = notify(state, {:update_ticker, object})
     :ok
-  end
-
-  @doc false
-  def update_ticker(state, [every: seconds]) do
-    pid = spawn(__MODULE__, :ticker_fetcher, [self(), seconds * 1000])
-    Map.merge(state, %{fetcher: pid})
-  end
-
-  @doc false
-  def ticker_fetcher(server, timeout) do
-    ref = Process.monitor(server)
-    Process.flag(:trap_exit, true)
-    ticker_fetcher(ref, server, timeout)
-    :true = Process.demonitor(ref)
-  end
-
-  @doc false
-  def ticker_fetcher(ref, server, timeout) do
-    GenServer.call(server, :fetch_ticker)
-    receive do
-      {:DOWN, ^ref, _, _, _}    -> :ok
-      {:EXIT, ^server, :normal} -> :ok
-    after
-      timeout ->
-        ticker_fetcher(ref, server, timeout)
-    end
   end
 end

@@ -139,18 +139,6 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
-  def handle_call({:update_order_books, [every: _seconds] = params}, _from, state) do
-    new_state = update_order_books(state, params)
-    {:reply, new_state.fetcher, new_state}
-  end
-
-  @doc false
-  def handle_call(:stop_to_update_fetcher, _from, %{fetcher: fetcher} = state) do
-    Process.exit(fetcher, :normal)
-    {:reply, :ok, Map.delete(state, :fetcher)}
-  end
-
-  @doc false
   def handle_call({:shrink_order_books, depth}, _from, %{currency_pair: currency_pair} = state) do
     :ok = clean_order_books(state)
     new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: depth])
@@ -163,6 +151,9 @@ defmodule Krasukha.MarketGen do
     new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: order_book_depth])
     {:reply, :ok, new_state}
   end
+
+  @doc false
+  defdelegate handle_call(do_nothing, from, state), to: Helpers.Gen
 
 
   @doc false
@@ -316,30 +307,4 @@ defmodule Krasukha.MarketGen do
   defp book_tid(%{book_tids: %{asks_book_tid: asks_book_tid}}, type) when type in [:asks, "ask", "buy"], do: asks_book_tid
   defp book_tid(%{book_tids: %{bids_book_tid: bids_book_tid}}, type) when type in [:bids, "bid", "sell"], do: bids_book_tid
   defp history_tid(%{history_tid: history_tid}), do: history_tid
-
-  @doc false
-  def update_order_books(state, [every: seconds]) do
-    pid = spawn(__MODULE__, :order_books_fetcher, [self(), seconds * 1000])
-    Map.merge(state, %{fetcher: pid})
-  end
-
-  @doc false
-  def order_books_fetcher(server, timeout) do
-    ref = Process.monitor(server)
-    Process.flag(:trap_exit, true)
-    order_books_fetcher(ref, server, timeout)
-    :true = Process.demonitor(ref)
-  end
-
-  @doc false
-  def order_books_fetcher(ref, server, timeout) do
-    GenServer.call(server, :shrink_order_books)
-    receive do
-      {:DOWN, ^ref, _, _, _}    -> :ok
-      {:EXIT, ^server, :normal} -> :ok
-    after
-      timeout ->
-        order_books_fetcher(ref, server, timeout)
-    end
-  end
 end

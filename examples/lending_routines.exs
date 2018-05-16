@@ -2,8 +2,6 @@ alias Krasukha.{SecretAgent, LendingGen, LendingRoutines, HTTP}
 
 # init lending market monitor
 {:ok, xrp_lending} = LendingGen.start_link("XRP")
-:ok = GenServer.call(:xrp_lending, {:update_loan_orders, [every: 60]})
-:ok = GenServer.call(:xrp_lending, :stop_to_update_loan_orders)
 
 # init secret agent
 {:ok, agent} = Krasukha.start_secret_agent(key, secret)

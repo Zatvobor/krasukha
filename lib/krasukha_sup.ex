@@ -29,6 +29,16 @@ defmodule Krasukha.Supervisor do
         [id: Krasukha.ExchangeRoutines.Supervisor, restart: :permanent]
       ),
       supervisor(
+        Supervisor,
+        [[], [strategy: :one_for_one, name: Krasukha.Markets.Supervisor]],
+        [id: Krasukha.Markets.Supervisor, restart: :permanent]
+      ),
+      supervisor(
+        Supervisor,
+        [[], [strategy: :one_for_one, name: Krasukha.Iterative.Supervisor]],
+        [id: Krasukha.Iterative.Supervisor, restart: :permanent]
+      ),
+      supervisor(
         Krasukha.WAMP.Supervisor, [], restart: :permanent
       )
     ]
