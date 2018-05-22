@@ -24,6 +24,7 @@ defmodule Krasukha.Helpers.StringTest do
   test "to_unix_time/1" do
     assert to_unix_time({{1970, 1, 1}, {0, 0, 0}}) == 0
     assert to_unix_time({{2017, 1, 20}, {10, 39, 35}}) == 1484908775
+    assert to_unix_time(NaiveDateTime.from_iso8601!("2014-02-10 04:23:23")) == 1392006203
   end
 
   test "from_unix_time/1" do

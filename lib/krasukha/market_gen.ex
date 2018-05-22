@@ -127,6 +127,12 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
+  def handle_call(:fetch_trade_history, _from, state) do
+    new_state = fetch_trade_history(state)
+    {:reply, new_state.fetch_trade_history_result, new_state}
+  end
+
+  @doc false
   def handle_call(:unsubscribe, _from, state) do
     new_state = unsubscribe(state)
     {:reply, new_state.unsubscribed, new_state}
@@ -149,6 +155,13 @@ defmodule Krasukha.MarketGen do
   def handle_call(:shrink_order_books, _form, %{currency_pair: currency_pair, order_book_depth: order_book_depth} = state) when is_integer(order_book_depth) do
     :ok = clean_order_books(state)
     new_state = fetch_order_books(state, [currencyPair: currency_pair, depth: order_book_depth])
+    {:reply, :ok, new_state}
+  end
+
+  @doc false
+  def handle_call(:shrink_trade_history, _from, state) do
+    :ok = clean_history_book(state)
+    new_state = fetch_trade_history(state)
     {:reply, :ok, new_state}
   end
 
@@ -258,6 +271,15 @@ defmodule Krasukha.MarketGen do
   end
 
   @doc false
+  def fetch_trade_history(%{history_tid: history_tid, currency_pair: currency_pair} = state, params \\ []) do
+    {:ok, 200, payload} = HTTP.PublicAPI.return_trade_history(Enum.concat([currencyPair: currency_pair], params))
+    objects = Enum.map(payload, fn(data) -> to_trade_object(data) end)
+    :true = :ets.insert(history_tid, objects)
+    :ok = notify(state, {:fetch_trade_history, objects})
+    Map.put(state, :fetch_trade_history_result, :ok)
+  end
+
+  @doc false
   def update_order_book(state, [_, _, _, data, _seq]) when is_list(data) do
     for action <- data, do: update_order_book(state, action)
     :ok
@@ -283,7 +305,7 @@ defmodule Krasukha.MarketGen do
   @doc false
   def update_order_book(state, %{"data" => data, "type" => "newTrade"}) do
     tid = history_tid(state)
-    object = {to_integer(data["tradeID"]), data["date"], to_atom(data["type"]), to_float(data["rate"]), to_float(data["amount"]), to_float(data["total"])}
+    object = to_trade_object(data)
     :true = :ets.insert(tid, object)
     :ok = notify(state, {:update_order_history, object})
   end
@@ -304,7 +326,21 @@ defmodule Krasukha.MarketGen do
     :ok
   end
 
+  @doc false
+  def clean_history_book(%{history_tid: history_tid}) do
+    clean_history_book(history_tid)
+  end
+  def clean_history_book(tid) when is_atom(tid) do
+    :true = :ets.delete_all_objects(tid)
+    :ok
+  end
+
   defp book_tid(%{book_tids: %{asks_book_tid: asks_book_tid}}, type) when type in [:asks, "ask", "buy"], do: asks_book_tid
   defp book_tid(%{book_tids: %{bids_book_tid: bids_book_tid}}, type) when type in [:bids, "bid", "sell"], do: bids_book_tid
   defp history_tid(%{history_tid: history_tid}), do: history_tid
+
+  # %{amount: "12.06806807", date: "2018-05-22 16:46:56", globalTradeID: 374066955, rate: "0.00030398", total: "0.00366845", tradeID: 3744715, type: "buy"}
+  defp to_trade_object(data) do
+    {to_integer(data[:tradeID]), data[:date], to_atom(data[:type]), to_float(data[:rate]), to_float(data[:amount]), to_float(data[:total])}
+  end
 end

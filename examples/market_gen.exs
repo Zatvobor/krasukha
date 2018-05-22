@@ -7,6 +7,7 @@
 {:ok, subscription} = GenServer.call(:btc_sc_market, :subscribe)
 # subscribe for updates over HTTP
 params = %{server: :btc_dash_market, request: :shrink_order_books, timeout: 10000, every: 40}
+params = %{server: :btc_dash_market, request: :shrink_trade_history, timeout: 10000}
 Krasukha.IterativeGen.start_link(params, [:iterate])
 
 # Init market monitor over OTP

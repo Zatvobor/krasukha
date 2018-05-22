@@ -13,6 +13,12 @@ defmodule Krasukha.HTTP.PublicAPI do
   end
 
   @doc false
+  def return_trade_history(params \\ [currencyPair: "BTC_NXT"]) do
+    HTTP.url("returnTradeHistory", params, uri)
+      |> HTTP.get
+  end
+
+  @doc false
   def return_ticker() do
     HTTP.url("returnTicker", [], uri)
       |> HTTP.get

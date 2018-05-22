@@ -77,6 +77,9 @@ defmodule Krasukha.Helpers.String do
       |> :calendar.datetime_to_gregorian_seconds
       |> Kernel.-(@epoch)
   end
+  def to_unix_time(%NaiveDateTime{} = dt) do
+    to_unix_time({{dt.year, dt.month, dt.day}, {dt.hour, dt.minute, dt.second}})
+  end
 
   @doc false
   def from_unix_time(seconds) do

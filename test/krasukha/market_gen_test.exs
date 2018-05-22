@@ -228,7 +228,7 @@ defmodule Krasukha.MarketGenTest do
 
     @message [6956793409822983, 4840230496786428, %{},
     [
-        %{"data" => %{"tradeID" => 627705, "rate" => "0.00000110", "amount" => "10.03", "date" => "2014-10-07 21:51:20", "total" => "0.000011", "type" => "sell"}, "type" => "newTrade"}
+        %{"data" => %{tradeID: 627705, rate: "0.00000110", amount: "10.03", date: "2014-10-07 21:51:20", total: "0.000011", type: "sell"}, "type" => "newTrade"}
     ],
         %{"seq" => 733186}
     ]
