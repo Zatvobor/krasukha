@@ -18,6 +18,7 @@ defmodule Krasukha.MarketsGen do
     state = %{}
       |> Map.merge(%{subscriber: subscriber})
       |> Map.merge(__create_ticker_table())
+      |> Map.merge(__create_gen_event())
 
     # applies preflight setup
     state = apply_preflight_opts(state, preflight_opts, __MODULE__)
@@ -109,9 +110,9 @@ defmodule Krasukha.MarketsGen do
   end
 
   @doc false
+  def fetch_ticker_object_spec, do: %{currencyPair: 1, baseVolume: 2, high24hr: 3, highestBid: 4, id: 5, isFrozen: 6, last: 7, low24hr: 8, lowestAsk: 9, percentChange: 10, quoteVolume: 11}
   def fetch_ticker(%{ticker: tid} = state, payload) do
     Enum.map(payload, fn({k, v}) ->
-      # {1:currencyPair, 2:baseVolume, 3:high24hr, 4:highestBid, 5:id, 6:isFrozen, 7:last, 8:low24hr, 9:lowestAsk, 10:percentChange, 11:quoteVolume}
       object = ([ k | (Map.values(v) |> Enum.map(fn(e) -> Helpers.String.to_float(e) end)) ] |> List.to_tuple)
       :true = :ets.insert(tid, object)
       :ok = notify(state, {:fetch_ticker, object})
@@ -120,8 +121,8 @@ defmodule Krasukha.MarketsGen do
   end
 
   @doc false
+  def update_ticker_object_spec(), do: %{currencyPair: 1, last: 2, lowestAsk: 3, highestBid: 4, percentChange: 5, baseVolume: 6, quoteVolume: 7, isFrozen: 8, '24hrHigh': 9, '24hrLow': 10}
   def update_ticker(%{ticker: tid} = state, [_, _, _, [h|t]]) do
-    # {1:currencyPair, 2:last, 3:lowestAsk, 4:highestBid, 5:percentChange, 6:baseVolume, 7:quoteVolume, 8:isFrozen, 9:24hrHigh, 10:24hrLow}
     object = ([ Helpers.String.to_atom(h) | Enum.map(t, fn(e) -> Helpers.String.to_float(e) end) ] |> List.to_tuple)
     :true = :ets.insert(tid, object)
     :ok = notify(state, {:update_ticker, object})
